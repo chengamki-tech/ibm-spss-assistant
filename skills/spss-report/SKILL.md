@@ -6,10 +6,12 @@ description: |
   触发词: "论文结果"、"统计报告"、"写结果段落"、"report section"、
   "APA 格式"、"怎么写进论文"、"结果怎么表述"、"图表建议"、
   "讨论怎么写"、"不显著怎么办"。
-allowed-tools: Read, Write, Edit, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # SPSS 论文报告生成助手 v2

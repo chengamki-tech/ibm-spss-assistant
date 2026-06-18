@@ -5,10 +5,12 @@ description: |
   支持批处理、错误排查、宏技巧、数据导入导出。
   触发词: "SPSS 语法"、"SPSS Syntax"、"生成语法"、"syntax for"、
   "批处理"、"批量分析"、"syntax 报错"、"自动化"、"宏"。
-allowed-tools: Read, Write, Edit, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # SPSS Syntax 语法生成器 v2
@@ -474,9 +476,7 @@ RELIABILITY
 ## 七、批处理技巧
 
 ```spss
-* ========== 批量分析 ==========.
-
-* 对多个变量重复 t 检验.
+* 批量 t 检验.
 DO REPEAT dv = score1 score2 score3 score4 score5.
   T-TEST GROUPS=group(1 2)
     /VARIABLES=dv
@@ -484,78 +484,15 @@ DO REPEAT dv = score1 score2 score3 score4 score5.
     /CRITERIA=CI(.95).
 END REPEAT.
 
-* 对多个变量做相关分析.
-DO REPEAT x = var1 var2 var3
-         / y = var4 var5 var6.
-  CORRELATIONS VARIABLES=x y
-    /PRINT=TWOTAIL NOSIG.
-END REPEAT.
-
 * 批量描述统计.
 DESCRIPTIVES VARIABLES=score1 TO score20
   /STATISTICS=MEAN STDDEV MIN MAX.
-
-* 批量频率分析.
-FREQUENCIES VARIABLES=item1 TO item20
-  /ORDER=ANALYSIS.
 ```
 
 ---
 
-## 八、输出管理
+## 参考资料
 
-```spss
-* ========== 输出导出 ==========.
-
-* 导出为 HTML.
-OUTPUT EXPORT
-  /CONTENTS EXPORT=VISIBLE
-  /HTML DOCUMENTFILE='C:\output\results.html'
-  IMAGES=EMBEDDED.
-
-* 导出为 Word.
-OUTPUT EXPORT
-  /CONTENTS EXPORT=VISIBLE
-  /DOCX DOCUMENTFILE='C:\output\results.docx'.
-
-* 导出为 PDF.
-OUTPUT EXPORT
-  /CONTENTS EXPORT=VISIBLE
-  /PDF DOCUMENTFILE='C:\output\results.pdf'.
-
-* 导出图表为 PNG.
-OUTPUT EXPORT
-  /CONTENTS EXPORT=ALL
-  /PNG IMAGFILE='C:\output\chart.png' WIDTH=800 HEIGHT=600.
-
-* 仅导出特定表格.
-OUTPUT EXPORT
-  /SELECT TABLES=1 3 5
-  /DOCX DOCUMENTFILE='C:\output\selected_tables.docx'.
-```
-
----
-
-## 九、常见错误排查
-
-当用户报告 Syntax 报错时，按以下顺序检查：
-
-| 错误类型 | 常见原因 | 解决方案 |
-|---------|---------|---------|
-| 命令未结束 | 忘记加句号 `.` | 在命令末尾加 `.` |
-| 变量名不存在 | 拼写错误或大小写不匹配 | 检查变量名是否与数据文件一致 |
-| 子命令顺序错误 | 某些子命令有位置要求 | 参考语法手册调整顺序 |
-| 字符串变量未加引号 | 字符串值需要用引号 | 加单引号 `'text'` |
-| 期望频率 < 5 | 卡方检验前提不满足 | 改用 Fisher 精确检验 |
-| 样本量不足 | 分析方法要求更多样本 | 减少自变量或增加样本 |
-| 缺失值过多 | 大量系统缺失 | 检查数据录入，用 MISSING 处理 |
-| 类型不匹配 | 字符串变量用于数值分析 | 用 AUTORECODE 转换 |
-
-```spss
-* 字符串转数值.
-AUTORECODE VARIABLES=str_var
-  /INTO num_var.
-
-* 或用 ALTER TYPE.
-ALTER TYPE str_var (F8.0).
-```
+- 输出管理语法（导出 HTML/Word/PDF/PNG）→ 见 [references/syntax-reference.md](references/syntax-reference.md)
+- 错误排查手册 → 见 [references/error-troubleshooting.md](references/error-troubleshooting.md)
+- 高级分析语法（MANOVA、Bootstrap、PROCESS）→ 见 [references/advanced-analysis-guide.md](references/advanced-analysis-guide.md)

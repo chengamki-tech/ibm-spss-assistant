@@ -5,10 +5,12 @@ description: |
   逻辑回归、中介/调节效应等输出表格，推荐统计方法，翻译统计指标含义。
   触发词: "SPSS 结果"、"这个表格什么意思"、"该用什么检验"、"interpret SPSS output"、
   "p值"、"效应量"、"显著性"、"统计结果怎么解释"、"怎么分析"、"帮我看看"。
-allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # IBM SPSS 结果解读助手 v2

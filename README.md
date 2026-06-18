@@ -1,6 +1,6 @@
 # IBM SPSS Assistant
 
-**IBM SPSS Statistics 智能助手** — 一套 6 个 Claude Code Skill，覆盖从数据清洗到论文投稿的全流程。
+**IBM SPSS Statistics 智能助手** — 基于 [Agent Skills 开放标准](https://agentskills.io) 的 6 个 Skill，覆盖从数据清洗到论文投稿的全流程。兼容 40+ 种 AI Agent。
 
 > 不是代替 SPSS 做分析，而是帮你在最关键的地方少走弯路：**该做什么分析、结果说明什么、怎么写进论文**。
 
@@ -64,31 +64,67 @@
 
 ## 安装
 
-### 方式一：一行命令（推荐）
+本项目遵循 [Agent Skills 开放标准](https://agentskills.io/specification)，可在任何兼容的 AI Agent 中使用。
+
+### Claude Code
 
 ```bash
+# 一行命令加载插件
 claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
-```
 
-### 方式二：克隆到本地
-
-```bash
+# 或手动安装
 git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
-
-# Windows
-xcopy /E /I ibm-spss-assistant %USERPROFILE%\.claude\plugins\ibm-spss-assistant
-
-# macOS / Linux
 cp -r ibm-spss-assistant ~/.claude/plugins/
 ```
 
-### 方式三：作为项目级 Skill
+### OpenAI Codex
+
+将 skills 目录复制到 Codex 的 skills 目录中：
+```bash
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+# 将 skills/ 下的各目录复制到 Codex 的 skills 加载路径
+# 参考: https://developers.openai.com/codex/skills/
+```
+
+### Gemini CLI
 
 ```bash
-cd your-project
-mkdir -p .claude/plugins
-cp -r /path/to/ibm-spss-assistant .claude/plugins/
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+# 将 skills/ 复制到 Gemini CLI 的 skills 目录
+# 参考: https://geminicli.com/docs/cli/skills/
 ```
+
+### Cursor / VS Code / GitHub Copilot
+
+```bash
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+# 将 skills/ 目录放入项目的 .skills/ 或工作区 skills 目录
+# Cursor: https://cursor.com/docs/context/skills
+# VS Code: https://code.visualstudio.com/docs/copilot/customization/agent-skills
+# GitHub Copilot: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+```
+
+### JetBrains Junie
+
+```bash
+# 参考: https://junie.jetbrains.com/docs/agent-skills.html
+# 将 skills/ 复制到项目中 Junie 能识别的位置
+```
+
+### Roo Code / Goose / OpenHands / Amp / 其他
+
+```bash
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+# 参考各 Agent 的 Agent Skills 文档
+# 通用方式: 将 skills/ 目录放入 Agent 能发现的路径
+```
+
+### 通用安装方式
+
+任何支持 Agent Skills 标准的工具都可以使用。核心要求：
+1. 将 `skills/` 目录下的 6 个子目录放到你的 Agent 能发现的位置
+2. 每个子目录包含一个 `SKILL.md` 文件，Agent 会自动识别
+3. `references/` 目录是参考资料，Agent 在需要时会自动读取
 
 ---
 
@@ -156,30 +192,30 @@ t(98)=3.42, p=.001, Cohen's d=0.66
 ## 常见问题 (FAQ)
 
 ### Q: 这个插件需要安装 SPSS 吗？
-A: 不需要。这个插件是 Claude Code 的 Skill，帮你理解、生成语法和撰写报告。实际的 SPSS 操作需要你自己的 SPSS 软件。
+A: 不需要。这个插件帮你理解 SPSS 输出、生成 SPSS Syntax 和撰写统计报告。实际的 SPSS 操作需要你自己的 SPSS 软件。
 
 ### Q: 生成的语法能直接在 SPSS 里运行吗？
 A: 是的，生成的语法可以直接复制到 SPSS Syntax Editor 中运行。但请检查变量名是否与你的数据文件一致。
 
 ### Q: 支持中文版 SPSS 吗？
-A: 支持。生成的语法和解读适用于中英文版 SPSS。如果你运行中文版 SPSS，输出表格的标题可能是中文的，skill 能够识别。
+A: 支持。生成的语法和解读适用于中英文版 SPSS。
+
+### Q: 只能在 Claude Code 中使用吗？
+A: 不是。本项目遵循 [Agent Skills 开放标准](https://agentskills.io)，可在 40+ 种兼容 AI Agent 中使用，包括 Claude Code、OpenAI Codex、Gemini CLI、Cursor、VS Code、GitHub Copilot、JetBrains Junie、Roo Code、Goose、OpenHands、Amp 等。
 
 ### Q: 结果解读准确吗？
-A: 插件基于统计学标准方法进行解读，但不能替代你对数据和研究设计的理解。建议将解读结果作为参考，结合你的专业知识做出最终判断。
+A: 所有统计方法的解读基于学术界公认的标准（Cohen 1988, Nunnally & Bernstein 1994, Kaiser 1974, Hayes 2013 等），阈值和公式均来自权威文献。但建议将解读结果作为参考，结合你的专业知识做出最终判断。
 
-### Q: 能处理多大的数据集？
-A: 这个插件不直接处理数据——它帮你生成语法和解读结果。SPSS 本身可以处理数十万行数据。
-
-### Q: 和 G*Power 是什么关系？
-A: G*Power 是统计功效计算的独立软件。插件中的 `power-analysis-sample-size.md` 参考文档教你如何使用 G*Power 进行样本量计算和功效分析。
+### Q: 统计阈值的来源是什么？
+A: 效应量标准来自 Cohen (1988)，信度标准来自 Nunnally & Bernstein (1994)，KMO 标准来自 Kaiser (1974)，EPV 标准来自 Peduzzi et al. (1996)，VIF 标准来自 Myers (1990)，功效分析基于 Faul et al. (2007, 2009) 的 G*Power，中介效应基于 Hayes (2013) 的 PROCESS 宏。所有引用均为真实学术文献。
 
 ---
 
 ## 技术规格
 
-- **基于**：[Agent Skills 开放标准](https://agentskills.io)
-- **兼容**：Claude Code（CLI、桌面版、VS Code / JetBrains 扩展）
-- **运行要求**：无需额外依赖，无需网络请求
+- **基于**：[Agent Skills 开放标准](https://agentskills.io/specification)
+- **兼容工具**：Claude Code、OpenAI Codex、Gemini CLI、Cursor、VS Code、GitHub Copilot、JetBrains Junie、Roo Code、Goose、OpenHands、Amp、Databricks、Snowflake、OpenCode 等 40+ 种 AI Agent
+- **运行要求**：无需额外依赖，无需网络请求，无需安装 SPSS
 - **语言**：简体中文为主，统计术语保留英文原名
 - **版本**：2.0.0
 - **License**：MIT

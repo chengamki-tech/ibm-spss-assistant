@@ -5,10 +5,12 @@ description: |
   变量类型检查、编码一致性、重复样本、数据标准化、哑变量编码。
   触发词: "数据清洗"、"缺失值"、"异常值"、"data cleaning"、"data check"、
   "数据预处理"、"数据准备"、"标准化"、"正态转换"、"哑变量"。
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # SPSS 数据清洗与预处理 v2

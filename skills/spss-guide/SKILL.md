@@ -5,10 +5,12 @@ description: |
   假设检验→建模→报告"五步流程带新手走完整个分析过程。
   触发词: "SPSS 流程"、"统计分析步骤"、"怎么做分析"、"statistical workflow"、
   "从哪开始"、"问卷分析"、"课程作业"、"毕业论文"、"第一次用SPSS"。
-allowed-tools: Read, Write, Edit, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # SPSS 统计流程向导 v2

@@ -5,10 +5,12 @@ description: |
   通过决策树推荐最合适的 SPSS 统计方法，附前提假设和操作路径。
   触发词: "该用什么检验"、"该做什么分析"、"什么统计方法"、"what test"、
   "什么检验"、"t检验还是方差分析"、"用卡方还是"、"不知道用什么方法"。
-allowed-tools: Read, Write, Edit, AskUserQuestion
-version: 2.0.0
 license: MIT
-compatibility: Designed for Claude Code
+compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
+metadata:
+  version: "2.0.0"
+  author: Amki1209
+  language: zh-CN
 ---
 
 # 我该用什么统计检验？
