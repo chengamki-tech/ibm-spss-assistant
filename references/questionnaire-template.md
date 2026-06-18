@@ -291,3 +291,101 @@ REGRESSION
 1. 删除高度相关的自变量
 2. 使用层次回归分步纳入
 3. 考虑岭回归或主成分回归
+
+### 信度在 .60-.70 之间 (边界情况)
+- 如果是探索性研究（新量表），.60-.70 可以接受
+- 如果是验证性研究（成熟量表），需要改进
+- 优先删除 CITC 最低的题项
+- 检查是否有反向题未反转
+- 检查是否混入了不同维度的题项
+- 考虑合并相关性高的维度
+
+### 因子载荷出现交叉（题项在两个因子上都 > .40）
+- 删除该题项（最常见做法）
+- 或尝试 Promax 斜交旋转（允许因子间相关）
+- 或提高载荷阈值到 .50
+
+---
+
+## 多选题 (Multiple Response) 处理
+
+### 数据录入
+每个选项设为一个二分变量：
+```
+opt1: 0=未选, 1=已选
+opt2: 0=未选, 1=已选
+opt3: 0=未选, 1=已选
+```
+
+### 定义多响应集
+```spss
+* 定义多响应集.
+MRSETS
+  /MDGROUP NAME=$options LABEL='多选题选项'
+    VARIABLES=opt1 opt2 opt3 opt4 opt5
+    VALUE=1
+  /MCGROUP NAME=$options_mc LABEL='多选题选项'
+    VARIABLES=opt1 opt2 opt3 opt4 opt5.
+
+* 多响应频率分析.
+MULTI RESPONSE GROUPS=$options '多选题'
+  /FREQUENCIES=$options.
+```
+
+### 多选题交叉表
+```spss
+MULTI RESPONSE GROUPS=$options '多选题'
+  /TABLES=$options BY gender.
+```
+
+---
+
+## 问卷研究中的中介/调节效应
+
+### 中介效应在问卷中的应用
+
+典型场景：自尊(X) → 自我效能感(M) → 学业成绩(Y)
+
+```spss
+* 中介效应三步回归.
+* Step 1: X → Y.
+REGRESSION /DEPENDENT Y /METHOD=ENTER X.
+* Step 2: X → M.
+REGRESSION /DEPENDENT M /METHOD=ENTER X.
+* Step 3: X + M → Y.
+REGRESSION /DEPENDENT Y /METHOD=ENTER X M.
+
+* 用 PROCESS 宏 (推荐).
+PROCESS y=Y /x=X /m=M /model=4 /boot=5000.
+```
+
+### 调节效应在问卷中的应用
+
+典型场景：压力(X) → 焦虑(Y)，社会支持(Z) 调节
+
+```spss
+* 中心化.
+COMPUTE X_c = X - [X的均值].
+COMPUTE Z_c = Z - [Z的均值].
+COMPUTE XZ = X_c * Z_c.
+EXECUTE.
+
+* 层次回归.
+REGRESSION
+  /STATISTICS COEFF R ANOVA CHANGE
+  /DEPENDENT Y
+  /METHOD=ENTER X_c Z_c
+  /METHOD=ENTER XZ.
+
+* 用 PROCESS 宏.
+PROCESS y=Y /x=X /w=Z /model=1 /boot=5000 /plot=1.
+```
+
+### 论文表述（问卷中介效应）
+```
+为检验 [中介变量] 在 [自变量] 与 [因变量] 之间的中介效应，
+采用 PROCESS 宏 (Hayes, 2013) Model 4，Bootstrap 重复抽样 5000 次。
+结果表明，[自变量] 通过 [中介变量] 影响 [因变量] 的间接效应显著
+(ab = [值], BootSE = [值], 95% BootCI [下限, 上限])，
+置信区间不包含 0，说明 [中介变量] 发挥了 [完全/部分] 中介作用。
+```

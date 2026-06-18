@@ -1,19 +1,41 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics 智能助手 — 结果解读、分析方法推荐、SPSS Syntax 生成、数据清洗检查、论文报告撰写。面向学生和研究人员，把统计流程变得更顺手、更可解释。支持中文论文表述模板、问卷分析标准流程、检验选择决策树。",
-  "version": "1.0.0",
+  "description": "IBM SPSS Statistics 智能助手 v2 — 结果解读 · 检验推荐 · Syntax 生成 · 数据清洗 · 论文报告。面向学生、研究生、教师和研究人员，覆盖从数据清洗到论文投稿的全流程。支持 t 检验、ANOVA、回归、因子分析、信度分析、中介/调节效应、逻辑回归诊断等。",
+  "version": "2.0.0",
   "author": {
-    "name": "SPSS Assistant"
+    "name": "Amki1209",
+    "url": "https://github.com/chengamki-tech"
   },
   "repository": "https://github.com/chengamki-tech/ibm-spss-assistant",
   "license": "MIT",
   "keywords": [
     "spss",
-    "statistics",
+    "spss-statistics",
+    "statistical-analysis",
     "data-analysis",
     "thesis",
+    "dissertation",
     "research",
-    "statistical-test",
-    "result-interpretation"
+    "survey-analysis",
+    "questionnaire",
+    "cronbach-alpha",
+    "anova",
+    "regression",
+    "factor-analysis",
+    "chi-square",
+    "t-test",
+    "pearson",
+    "spearman",
+    "logistic-regression",
+    "mediation",
+    "moderation",
+    "apa-format",
+    "chinese-thesis",
+    "result-interpretation",
+    "data-cleaning",
+    "syntax-generator",
+    "statistical-test-recommendation",
+    "effect-size",
+    "power-analysis"
   ]
 }
