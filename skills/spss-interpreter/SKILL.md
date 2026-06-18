@@ -89,7 +89,18 @@ metadata:
 | X → M → Y 路径 | 中介效应分析 | Baron-Kenny 或 Bootstrap |
 | X 对 Y 的影响因 Z 而异 | 调节效应分析 | 交互项显著 |
 | 多个 IV 共同预测 DV | 多元回归 + 诊断 | VIF < 10, D-W 1.5-2.5 |
-| 非线性关系 | 曲线估计 | 比较线性/二次/三次拟合 |
+| 非线性关系 | 曲线估计 | 比较线性/二次/三次/指数拟合 |
+| 嵌套/多层数据 | 混合线性模型 | ICC > .05 需用多层模型 |
+| 计数数据 | 泊松/负二项回归 | 方差≈均值用泊松，过离散用负二项 |
+| 聚类分类 | K-Means / 层次 / TwoStep | 确定 K 值、检查 Silhouette 系数 |
+| 已知分组的分类预测 | 判别分析 | Wilks' Lambda 显著 |
+| 诊断准确性评估 | ROC 曲线 | AUC > .70 可接受 |
+| 生存/时间数据 | Kaplan-Meier / Cox 回归 | 等比例风险假设 |
+| 分类决策规则 | 决策树 (CHAID/CRT) | 可视化决策规则 |
+| 非线性预测 | 神经网络 (MLP/RBF) | 变量重要性排序 |
+
+> 详细语法和解读模板见 [references/advanced-procedures.md](references/advanced-procedures.md)
+> 图表制作指导见 [references/visualization-guide.md](references/visualization-guide.md)
 
 ### 前提假设检查清单
 

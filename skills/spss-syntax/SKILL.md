@@ -496,3 +496,5 @@ DESCRIPTIVES VARIABLES=score1 TO score20
 - 输出管理语法（导出 HTML/Word/PDF/PNG）→ 见 [references/syntax-reference.md](references/syntax-reference.md)
 - 错误排查手册 → 见 [references/error-troubleshooting.md](references/error-troubleshooting.md)
 - 高级分析语法（MANOVA、Bootstrap、PROCESS）→ 见 [references/advanced-analysis-guide.md](references/advanced-analysis-guide.md)
+- 全部高级程序语法（聚类、判别、生存分析、ROC、GLM、决策树、神经网络、Bootstrap、OMS、Python/R）→ 见 [references/advanced-procedures.md](references/advanced-procedures.md)
+- 图表制作完整指导 → 见 [references/visualization-guide.md](references/visualization-guide.md)
