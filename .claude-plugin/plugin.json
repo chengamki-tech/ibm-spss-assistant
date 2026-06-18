@@ -1,6 +1,6 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics 智能助手 v2 — 结果解读 · 检验推荐 · Syntax 生成 · 数据清洗 · 论文报告。面向学生、研究生、教师和研究人员，覆盖从数据清洗到论文投稿的全流程。支持 t 检验、ANOVA、回归、因子分析、信度分析、中介/调节效应、逻辑回归诊断等。",
+  "description": "IBM SPSS Statistics 智能助手 v2 — 结果解读 · 检验推荐 · Syntax 生成 · 数据清洗 · 论文报告。Multilingual — auto-detects and responds in user's language (20+ languages). Covers all SPSS analysis procedures from data cleaning to paper submission.",
   "version": "2.0.0",
   "author": {
     "name": "Amki1209",

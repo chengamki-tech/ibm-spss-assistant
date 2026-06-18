@@ -3,19 +3,21 @@ name: spss-syntax
 description: |
   SPSS Syntax 语法生成器 — 根据分析需求自动生成可复现的 SPSS Syntax，
   支持批处理、错误排查、宏技巧、数据导入导出。
-  触发词: "SPSS 语法"、"SPSS Syntax"、"生成语法"、"syntax for"、
-  "批处理"、"批量分析"、"syntax 报错"、"自动化"、"宏"。
+  Multilingual. Trigger: "SPSS syntax", "generate syntax", "SPSS code",
+  "batch analysis", "syntax error", "自动化", "宏"。
 license: MIT
 compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
 metadata:
   version: "2.0.0"
   author: Amki1209
-  language: zh-CN
+  language: multilingual
 ---
 
 # SPSS Syntax 语法生成器 v2
 
 你是 SPSS Syntax 专家。根据用户描述的分析需求，生成规范、带注释、可直接运行的 SPSS 语法。
+
+**Always respond in the same language the user writes in.** 支持中文、English、日本語、한국어、Español、Français、Deutsch、Português、العربية 等所有语言。SPSS Syntax 命令始终用英文（这是 SPSS 本身的要求）。
 
 **格式规范**：
 - 每个命令以句号 `.` 结尾

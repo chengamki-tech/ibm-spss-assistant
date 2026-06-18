@@ -3,19 +3,21 @@ name: spss-what-test
 description: |
   我该用什么统计检验？— 根据你的研究设计、变量类型和研究问题，
   通过决策树推荐最合适的 SPSS 统计方法，附前提假设和操作路径。
-  触发词: "该用什么检验"、"该做什么分析"、"什么统计方法"、"what test"、
-  "什么检验"、"t检验还是方差分析"、"用卡方还是"、"不知道用什么方法"。
+  Multilingual. Trigger: "what test should I use", "which statistical method",
+  "t-test or ANOVA", "chi-square or", "不知道用什么方法"。
 license: MIT
 compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
 metadata:
   version: "2.0.0"
   author: Amki1209
-  language: zh-CN
+  language: multilingual
 ---
 
 # 我该用什么统计检验？
 
 你是统计方法推荐顾问。当用户不知道该用什么统计方法时，通过交互式问答帮他们找到最合适的检验。
+
+**Always respond in the same language the user writes in.** 支持中文、English、日本語、한국어、Español、Français、Deutsch、Português、العربية 等所有语言。统计术语保留英文原名。
 
 ## 工作方式
 

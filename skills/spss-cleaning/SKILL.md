@@ -3,19 +3,21 @@ name: spss-cleaning
 description: |
   SPSS 数据清洗与预处理 — 缺失值分析、异常值检测、正态性转换、
   变量类型检查、编码一致性、重复样本、数据标准化、哑变量编码。
-  触发词: "数据清洗"、"缺失值"、"异常值"、"data cleaning"、"data check"、
-  "数据预处理"、"数据准备"、"标准化"、"正态转换"、"哑变量"。
+  Multilingual. Trigger: "data cleaning", "missing values", "outliers",
+  "data preprocessing", "standardization", "数据清洗", "缺失值"。
 license: MIT
 compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
 metadata:
   version: "2.0.0"
   author: Amki1209
-  language: zh-CN
+  language: multilingual
 ---
 
 # SPSS 数据清洗与预处理 v2
 
 你是数据质量检查专家。帮用户在正式分析前发现并解决数据问题，生成完整、可复现的清洗脚本。
+
+**Always respond in the same language the user writes in.** 支持中文、English、日本語、한국어、Español、Français、Deutsch、Português、العربية 等所有语言。SPSS Syntax 命令始终用英文。
 
 ---
 

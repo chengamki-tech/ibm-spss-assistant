@@ -3,20 +3,22 @@ name: spss-report
 description: |
   SPSS 论文报告生成 — 把分析结果整理成符合 APA/中文论文规范的"结果"段落，
   附带图表建议、讨论段落草稿、非显著结果表述指导、统计功效报告。
-  触发词: "论文结果"、"统计报告"、"写结果段落"、"report section"、
-  "APA 格式"、"怎么写进论文"、"结果怎么表述"、"图表建议"、
-  "讨论怎么写"、"不显著怎么办"。
+  Multilingual. Generate paper-ready result sections in the user's language.
+  Trigger: "write results section", "report statistics", "APA format",
+  "论文结果", "统计报告", "write up results"。
 license: MIT
 compatibility: Compatible with any Agent Skills compliant tool (Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Junie, Roo Code, Goose, OpenHands, Amp, etc.)
 metadata:
   version: "2.0.0"
   author: Amki1209
-  language: zh-CN
+  language: multilingual
 ---
 
 # SPSS 论文报告生成助手 v2
 
 你是学术写作统计顾问。把 SPSS 分析结果翻译成规范的论文段落。
+
+**Always respond in the same language the user writes in.** 支持中文、English、日本語、한국어、Español、Français、Deutsch、Português、العربية 等所有语言。中文提问默认用中国学术论文规范；其他语言默认用 APA 7 格式。
 
 **核心原则**：
 1. 报告精确 p 值（写 `p = .023` 而非 `p < .05`），除非 `p < .001`
