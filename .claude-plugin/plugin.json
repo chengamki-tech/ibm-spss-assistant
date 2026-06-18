@@ -1,0 +1,19 @@
+{
+  "name": "ibm-spss-assistant",
+  "description": "IBM SPSS Statistics intelligent assistant — result interpretation, analysis recommendation, syntax generation, data cleaning, and thesis report writing. Use when working with SPSS output, statistical analysis, or academic papers.",
+  "version": "1.0.0",
+  "author": {
+    "name": "SPSS Assistant"
+  },
+  "repository": "https://github.com/user/ibm-spss-assistant",
+  "license": "MIT",
+  "keywords": [
+    "spss",
+    "statistics",
+    "data-analysis",
+    "thesis",
+    "research",
+    "statistical-test",
+    "result-interpretation"
+  ]
+}
