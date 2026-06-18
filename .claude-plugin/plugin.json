@@ -1,6 +1,6 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics intelligent assistant — result interpretation, analysis recommendation, syntax generation, data cleaning, and thesis report writing. Use when working with SPSS output, statistical analysis, or academic papers.",
+  "description": "IBM SPSS Statistics 智能助手 — 结果解读、分析方法推荐、SPSS Syntax 生成、数据清洗检查、论文报告撰写。面向学生和研究人员，把统计流程变得更顺手、更可解释。支持中文论文表述模板、问卷分析标准流程、检验选择决策树。",
   "version": "1.0.0",
   "author": {
     "name": "SPSS Assistant"
