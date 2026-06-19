@@ -43,7 +43,8 @@ class SPSSEngine:
         ----------
         spss_home : str | None
             Explicit SPSS installation directory.  When *None* the engine
-            auto-detects the installation.
+            auto-detects the installation by checking the registry,
+            SPSS_HOME environment variable, and common install paths.
 
         Returns
         -------
@@ -294,71 +295,167 @@ class SPSSEngine:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _detect_spss():
-    """Return (home_dir, executable, version) or (None, None, None)."""
-    system = platform.system()
+    """Return (home_dir, executable, version) or (None, None, None).
 
+    Searches (in order):
+      1. Windows Registry (HKLM / HKCU / WOW6432Node)
+      2. Environment variable SPSS_HOME
+      3. Common install directories on all platforms
+      4. `which stats` on macOS / Linux
+    """
+    system = platform.system()
     candidates: list[tuple[str, str]] = []  # (home, version)
 
+    # ── 1. Windows Registry ─────────────────────────────────────────────
     if system == "Windows":
-        # Try registry first
         try:
             import winreg  # type: ignore
-            for v in range(40, 24, -1):
-                for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-                    for suffix in (f"{v}.0", str(v)):
-                        try:
-                            key = winreg.OpenKey(root, f"SOFTWARE\\IBM\\SPSS Statistics\\{suffix}")
-                            home = winreg.QueryValueEx(key, "InstallDir")[0]
-                            winreg.CloseKey(key)
-                            candidates.append((home, str(v)))
-                        except FileNotFoundError:
-                            pass
+            registry_roots = [
+                winreg.HKEY_LOCAL_MACHINE,
+                winreg.HKEY_CURRENT_USER,
+            ]
+            registry_prefixes = [
+                "SOFTWARE\\IBM\\SPSS Statistics",
+                "SOFTWARE\\WOW6432Node\\IBM\\SPSS Statistics",
+                "SOFTWARE\\IBM\\SPSS",
+                "SOFTWARE\\WOW6432Node\\IBM\\SPSS",
+            ]
+            for v in range(40, 23, -1):
+                for suffix in (f"{v}.0", f"{v}", str(v)):
+                    for prefix in registry_prefixes:
+                        for root in registry_roots:
+                            try:
+                                key = winreg.OpenKey(root, f"{prefix}\\{suffix}")
+                                home, _ = winreg.QueryValueEx(key, "InstallDir")
+                                winreg.CloseKey(key)
+                                candidates.append((home.rstrip("\\/"), str(v)))
+                            except FileNotFoundError:
+                                pass
         except ImportError:
             pass
 
-        # Common paths
-        for v in range(40, 24, -1):
-            for base in [
-                os.environ.get("ProgramFiles", r"C:\Program Files"),
-                os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
-            ]:
-                candidates.append((os.path.join(base, "IBM", "SPSS", "Statistics", str(v)), str(v)))
-                candidates.append((os.path.join(base, "IBM", "SPSS", "Statistics", f"{v}.0"), str(v)))
+    # ── 2. Environment variable ──────────────────────────────────────────
+    env_home = os.environ.get("SPSS_HOME") or os.environ.get("SPSSTATHOME")
+    if env_home and os.path.isdir(env_home):
+        # Try to guess version from path
+        version = "unknown"
+        for v in range(40, 23, -1):
+            if str(v) in env_home:
+                version = str(v)
+                break
+        candidates.append((env_home.rstrip("\\/"), version))
+
+    # ── 3. Common install directories ────────────────────────────────────
+    if system == "Windows":
+        # Roots to search
+        roots = [
+            os.environ.get("ProgramFiles", r"C:\Program Files"),
+            os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+            "C:\\Program Files",
+            "C:\\Program Files (x86)",
+            "D:\\Program Files",
+            "D:\\Program Files (x86)",
+            "C:\\",
+            "D:\\",
+        ]
+        # Common subpath patterns — most users have something like
+        # C:\Program Files\IBM\SPSS\Statistics\28\
+        # C:\Program Files\IBM\SPSS\28\
+        # C:\SPSS\
+        # C:\IBM\SPSS\Statistics\28\
+        # C:\Program Files\SPSS Inc\SPSS 28\
+        subpatterns = []
+        for v in range(40, 23, -1):
+            subpatterns += [
+                ("IBM", "SPSS", "Statistics", str(v)),
+                ("IBM", "SPSS", "Statistics", f"{v}.0"),
+                ("IBM", "SPSS", str(v)),
+                ("IBM", "SPSS", f"{v}.0"),
+                ("IBM", "SPSS Statistics", str(v)),
+                ("SPSS Inc", f"SPSS {v}"),
+                ("SPSS", f"Statistics {v}"),
+                (f"SPSS {v}",),
+                (f"SPSS{v}",),
+                ("SPSS",),
+                ("IBM", "SPSS"),
+            ]
+
+        for root in roots:
+            if not root or not os.path.isdir(root):
+                continue
+            for sub in subpatterns:
+                path = os.path.join(root, *sub)
+                if os.path.isdir(path):
+                    # Extract version from path or subpattern
+                    version = "unknown"
+                    for v in range(40, 23, -1):
+                        if str(v) in path:
+                            version = str(v)
+                            break
+                    candidates.append((path, version))
 
     elif system == "Darwin":
-        for v in range(40, 24, -1):
-            candidates.append((f"/Applications/IBM/SPSS/Statistics/{v}", str(v)))
-            candidates.append((f"/Applications/IBM/SPSS/Statistics/{v}.0", str(v)))
+        for v in range(40, 23, -1):
+            for base in ["/Applications", os.path.expanduser("~/Applications")]:
+                candidates.append((f"{base}/IBM/SPSS/Statistics/{v}", str(v)))
+                candidates.append((f"{base}/IBM/SPSS/Statistics/{v}.0", str(v)))
+                candidates.append((f"{base}/IBM/SPSS/{v}", str(v)))
+                candidates.append((f"{base}/SPSS Inc/SPSS {v}", str(v)))
 
     else:  # Linux
-        for v in range(40, 24, -1):
-            candidates.append((f"/opt/ibm/SPSS/Statistics/{v}", str(v)))
-            candidates.append((f"/opt/ibm/SPSS/Statistics/{v}.0", str(v)))
-        # Also check /usr/local
-        for v in range(40, 24, -1):
-            candidates.append((f"/usr/local/ibm/SPSS/Statistics/{v}", str(v)))
+        for v in range(40, 23, -1):
+            for base in ["/opt", "/usr/local", "/opt/ibm"]:
+                candidates.append((f"{base}/ibm/SPSS/Statistics/{v}", str(v)))
+                candidates.append((f"{base}/ibm/SPSS/Statistics/{v}.0", str(v)))
+                candidates.append((f"{base}/ibm/SPSS/{v}", str(v)))
 
+    # ── 4. Check all candidates ──────────────────────────────────────────
+    seen: set[str] = set()
     for home, ver in candidates:
-        if os.path.isdir(home):
-            exe = _find_exe(home)
-            return home, exe, ver
+        home_norm = os.path.normpath(home)
+        if home_norm in seen or not os.path.isdir(home_norm):
+            continue
+        seen.add(home_norm)
+        exe = _find_exe(home_norm)
+        if exe:
+            return home_norm, exe, ver
+
+    # ── 5. Fallback: search PATH on Unix ─────────────────────────────────
+    if system != "Windows":
+        try:
+            result = subprocess.run(["which", "stats"], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                stats_path = result.stdout.strip()
+                if stats_path and os.path.isfile(stats_path):
+                    return os.path.dirname(os.path.dirname(stats_path)), stats_path, "unknown"
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
 
     return None, None, None
 
 
 def _find_exe(home: str) -> str | None:
+    """Find the stats executable inside *home*."""
     system = platform.system()
-    if system == "Windows":
-        for name in ("stats.exe", "stats.com", "spss.com"):
-            p = os.path.join(home, name)
+    exe_names = ("stats.exe", "stats.com", "spss.exe", "spss.com") if system == "Windows" else ("stats", "spss")
+    sub_dirs = ("", "bin", "Stats", "Bin")
+
+    for sub in sub_dirs:
+        for name in exe_names:
+            p = os.path.join(home, sub, name) if sub else os.path.join(home, name)
             if os.path.isfile(p):
                 return p
-    else:
-        for name in ("stats", "spss"):
-            for sub in ("", "bin"):
-                p = os.path.join(home, sub, name) if sub else os.path.join(home, name)
-                if os.path.isfile(p) and os.access(p, os.X_OK):
-                    return p
+
+    # Windows: also look one level deeper for known folder names
+    if system == "Windows":
+        for deeper in ("Statistics", "SPSS"):
+            inner = os.path.join(home, deeper)
+            if os.path.isdir(inner):
+                for name in exe_names:
+                    p = os.path.join(inner, name)
+                    if os.path.isfile(p):
+                        return p
+
     return None
 
 

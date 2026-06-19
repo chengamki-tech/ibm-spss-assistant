@@ -55,7 +55,7 @@ pip install mcp
 
 ### Claude Code
 
-在你的项目根目录或 `~/.claude/` 下创建 `.mcp.json`：
+本项目根目录已包含 `.mcp.json`，clone 后直接可用：
 
 ```json
 {
@@ -69,15 +69,31 @@ pip install mcp
 }
 ```
 
-如果你安装了 `spss-mcp-server` 包：
+### 自动检测 SPSS 安装路径
+
+MCP Server 启动时会自动查找你电脑上的 IBM SPSS，搜索顺序：
+
+1. **Windows 注册表**（最可靠，IBM 安装时自动写入）
+2. **`SPSS_HOME` 环境变量**
+3. **常见安装路径**：
+   - `C:\Program Files\IBM\SPSS\Statistics\28\`
+   - `C:\Program Files\IBM\SPSS\28\`
+   - `C:\SPSS\`（含 `\SPSS\stats.exe` 子目录）
+   - `D:\Program Files\IBM\SPSS\Statistics\28\`
+   - 以及用户自定义的任意路径
+4. **PATH 中的 `stats` 命令**（macOS / Linux）
+
+如果自动检测失败，设置环境变量即可：
 
 ```json
 {
   "mcpServers": {
     "spss": {
-      "command": "spss-mcp",
-      "args": [],
-      "env": {}
+      "command": "python",
+      "args": ["-m", "spss_mcp"],
+      "env": {
+        "SPSS_HOME": "C:\\Program Files\\IBM\\SPSS\\Statistics\\28"
+      }
     }
   }
 }
