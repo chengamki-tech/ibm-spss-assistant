@@ -1,7 +1,7 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics AI companion — generates SPSS Syntax for your local SPSS, interprets SPSS output, writes paper sections. Requires IBM SPSS installed. Multilingual (20+ languages). Covers all SPSS procedures from data cleaning to publication.",
-  "version": "2.0.0",
+  "description": "IBM SPSS Statistics Max — AI companion + MCP Server. Skills generate SPSS Syntax & interpret output for any AI agent. MCP Server enables direct automated execution in your local SPSS (26 tools). Requires IBM SPSS installed. Multilingual (20+ languages).",
+  "version": "3.0.0",
   "author": {
     "name": "Amki1209",
     "url": "https://github.com/chengamki-tech"
@@ -11,6 +11,7 @@
   "keywords": [
     "spss",
     "spss-statistics",
+    "mcp-server",
     "statistical-analysis",
     "data-analysis",
     "thesis",
@@ -30,12 +31,12 @@
     "mediation",
     "moderation",
     "apa-format",
-    "chinese-thesis",
     "result-interpretation",
     "data-cleaning",
     "syntax-generator",
     "statistical-test-recommendation",
     "effect-size",
-    "power-analysis"
+    "power-analysis",
+    "automated-analysis"
   ]
 }

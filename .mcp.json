@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "spss": {
+      "command": "python",
+      "args": ["-m", "spss_mcp"],
+      "env": {}
+    }
+  }
+}

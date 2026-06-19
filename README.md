@@ -7,9 +7,9 @@
 <a id="english"></a>
 ## 🇬🇧 English
 
-**IBM SPSS Statistics Intelligent Assistant** — 6 skills based on the [Agent Skills Open Standard](https://agentskills.io), covering the entire workflow from data cleaning to paper submission. Compatible with 40+ AI agents.
+**IBM SPSS Statistics Intelligent Assistant** — 6 skills based on the [Agent Skills Open Standard](https://agentskills.io), covering the entire workflow from data cleaning to paper submission. Compatible with 40+ AI agents. **Now with MCP Server for automated SPSS execution (Max Mode).**
 
-> **This is an AI companion for IBM SPSS Statistics users.** You need a working IBM SPSS installation on your computer. This skill helps you use SPSS more effectively — it generates SPSS Syntax for you to run in your local SPSS, interprets your SPSS output, and writes up results for your paper. All data analysis is performed inside IBM SPSS.
+> **Two modes**: **Skill mode** (works with any AI agent — generates syntax, interprets output) · **MCP mode** (directly calls your local SPSS — fully automated execution)
 
 ### Skills
 
@@ -32,12 +32,26 @@
 
 ### Installation
 
+**Quick start (Skill mode — works with any AI agent):**
+
 ```bash
-# Claude Code
 claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
-# Clone for any agent
+# Or clone for any agent
 git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+```
+
+**Max mode (MCP Server — automated SPSS execution):**
+
+```bash
+# 1. Clone and install the MCP Server
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+cd ibm-spss-assistant/mcp-server
+pip install -e .
+
+# 2. The .mcp.json in the project enables automated execution
+# 3. Open SPSS → Utilities → Install Python Plug-in (one-time setup)
+# 4. Restart your AI agent → say "connect to my SPSS and run a t-test"
 ```
 
 Works with: Claude Code · OpenAI Codex · Gemini CLI · Cursor · VS Code · GitHub Copilot · JetBrains Junie · Roo Code · Goose · OpenHands · Amp · and any [Agent Skills](https://agentskills.io/clients) compatible tool.
@@ -67,19 +81,30 @@ All statistical analysis is performed by your local IBM SPSS. The AI skill only 
 <a id="中文"></a>
 ## 🇨🇳 中文
 
-**IBM SPSS Statistics 智能助手** — 基于 [Agent Skills 开放标准](https://agentskills.io) 的 6 个 Skill，覆盖从数据清洗到论文投稿的全流程。兼容 40+ 种 AI Agent。支持 20+ 种语言。
+**IBM SPSS Statistics 智能助手** — 基于 [Agent Skills 开放标准](https://agentskills.io) 的 6 个 Skill，覆盖从数据清洗到论文投稿的全流程。兼容 40+ 种 AI Agent。**支持 MCP Server 全自动执行（Max 版）**。
 
-> **这是 IBM SPSS 的 AI 辅助工具。** 你需要在电脑上安装 IBM SPSS。这个 skill 帮你更高效地使用 SPSS — 生成 SPSS Syntax 供你在本地 SPSS 中运行，解读你的 SPSS 输出，帮你撰写论文段落。所有数据分析都在 IBM SPSS 中完成。
+> **两种模式**：**Skill 模式**（适配所有 AI Agent — 生成语法、解读输出）+ **MCP 模式**（直接调用本地 SPSS — 全自动分析执行）
 
-### 工作流程
+### 安装
 
-1. **你有本地 SPSS** — Windows / macOS / Linux 版均可
-2. **你告诉 skill 需要什么** — 描述数据、研究问题，或粘贴 SPSS 输出
-3. **skill 生成 SPSS Syntax** — 复制到 SPSS Syntax Editor 中运行
-4. **你把 SPSS 输出贴回来** — skill 用通俗语言解读结果
-5. **skill 帮你写论文段落** — 按规范格式输出（APA 7 / 中文学术规范）
+**快速开始（Skill 模式 — 任何 AI Agent 可用）：**
 
-### 6 个 Skill
+```bash
+claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
+```
+
+**Max 模式（MCP Server — 自动执行 SPSS）：**
+
+```bash
+# 1. 克隆仓库并安装 MCP Server
+git clone https://github.com/chengamki-tech/ibm-spss-assistant.git
+cd ibm-spss-assistant/mcp-server
+pip install -e .
+
+# 2. 项目中的 .mcp.json 启用自动执行
+# 3. 打开 SPSS → Utilities → Install Python Plug-in（一次性配置）
+# 4. 重启 AI Agent → 说"连上我的 SPSS，做个 t 检验"
+```
 
 | Skill | 定位 | 核心功能 |
 |-------|------|---------|
@@ -439,6 +464,68 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 ---
 
+## MCP Server (Max Mode) — 自动执行
+
+除了 Skill（手动复制粘贴），本项目还包含一个 **MCP Server**，可以让 AI Agent **直接调用你的本地 IBM SPSS**，全自动执行分析。
+
+```
+Skill 模式:  你 → AI 生成语法 → 你复制到 SPSS → 你运行 → 你贴回输出 → AI 解读
+MCP 模式:    你说需求 → AI 自动执行 SPSS → 结果自动返回 → AI 解读（零手动操作）
+```
+
+### MCP 安装
+
+```bash
+# 1. 确保有 Python 3.9+ 和 IBM SPSS v24+
+# 2. 安装 MCP Server
+cd mcp-server
+pip install -e .
+
+# 3. 在 Claude Code 中配置
+# 创建 .mcp.json (已包含在项目中):
+{
+  "mcpServers": {
+    "spss": {
+      "command": "python",
+      "args": ["-m", "spss_mcp"]
+    }
+  }
+}
+```
+
+### MCP 提供的 26 个工具
+
+| 类别 | 工具 | 功能 |
+|------|------|------|
+| 系统 | `spss_connect` | 连接本地 SPSS |
+| 数据 | `spss_open_data` | 打开 .sav / .csv / .xlsx |
+| 数据 | `spss_get_variables` | 获取所有变量信息 |
+| 数据 | `spss_get_summary` | 描述统计摘要 |
+| 数据 | `spss_save_data` | 保存数据文件 |
+| 分析 | `spss_descriptives` | 描述统计 |
+| 分析 | `spss_frequency` | 频率分析 + 条形图 |
+| 分析 | `spss_explore` | 探索性分析 + 正态性检验 |
+| 分析 | `spss_normality` | Shapiro-Wilk / K-S 正态性检验 |
+| 分析 | `spss_levenes` | Levene 方差齐性检验 |
+| 分析 | `spss_ttest` | 独立样本 t 检验 |
+| 分析 | `spss_ttest_paired` | 配对样本 t 检验 |
+| 分析 | `spss_anova` | 单因素 ANOVA + 事后检验 |
+| 分析 | `spss_correlation` | 相关分析（Pearson / Spearman） |
+| 分析 | `spss_regression` | 线性回归 + VIF + 残差诊断 |
+| 分析 | `spss_crosstab` | 交叉表 + 卡方检验 |
+| 分析 | `spss_reliability` | Cronbach's α 信度分析 |
+| 分析 | `spss_factor` | 探索性因子分析（EFA） |
+| 分析 | `spss_logistic` | 逻辑回归 |
+| 分析 | `spss_means_compare` | 均值比较 |
+| 通用 | `spss_execute_syntax` | 执行任意 SPSS Syntax |
+| 通用 | `spss_run_analysis` | 按类型执行（支持 19 种分析） |
+| 导出 | `spss_export_output` | 导出 HTML / Word / PDF / PNG |
+| 导出 | `spss_export_chart` | 导出图表 |
+
+> 完整文档见 `mcp-server/README.md`
+
+---
+
 ## Statistics Methods Covered / 统计方法覆盖
 
 | Category | Methods |
@@ -467,12 +554,35 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 ## Technical / 技术规格
 
-- **Standard**: [Agent Skills Open Standard](https://agentskills.io/specification)
+- **Standard**: [Agent Skills Open Standard](https://agentskills.io/specification) + MCP (Model Context Protocol)
+- **Skills**: 6 universal Agent Skills (work with any compatible AI agent)
+- **MCP Server**: 26 tools for direct SPSS execution (requires Python 3.9+, SPSS Python Plug-in)
 - **Compatible agents**: Claude Code, OpenAI Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, JetBrains Junie, Roo Code, Goose, OpenHands, Amp, Databricks, Snowflake, OpenCode, and 40+ more
 - **Language**: Auto-detects user language, responds in the same language (20+ languages supported)
-- **Requirements**: IBM SPSS Statistics installed locally (v24+ recommended). No other dependencies, no network requests.
+- **Requirements**: IBM SPSS Statistics v24+ installed locally. MCP Server additionally requires Python 3.9+.
 - **License**: MIT
 
-## License
+## Project Structure / 项目结构
 
-[MIT License](LICENSE)
+```
+ibm-spss-assistant/
+├── .claude-plugin/plugin.json        # Claude Code 插件清单
+├── .mcp.json                          # MCP Server 配置
+├── mcp-server/                        # MCP Server 源码 (Max 版)
+│   ├── src/spss_mcp/
+│   │   ├── server.py                  # MCP 主入口 — 26 个工具
+│   │   ├── spss_engine.py             # SPSS 引擎 — 三级回退连接
+│   │   └── tools/                     # 数据分析/导出工具
+│   ├── pyproject.toml                 # Python 包配置
+│   └── README.md                      # MCP 安装文档
+├── skills/                            # 6 个通用 Skill
+│   ├── spss-interpreter/ SKILL.md
+│   ├── spss-what-test/   SKILL.md
+│   ├── spss-guide/       SKILL.md
+│   ├── spss-syntax/      SKILL.md
+│   ├── spss-cleaning/    SKILL.md
+│   └── spss-report/      SKILL.md
+├── references/                        # 10 份参考文档
+├── README.md
+└── LICENSE
+```
