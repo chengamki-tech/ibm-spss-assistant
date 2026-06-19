@@ -1,20 +1,22 @@
 # IBM SPSS Statistics MCP Server
 
-**让 AI Agent 直接调用你电脑上的 IBM SPSS** — 自动执行分析、返回结果、解读输出。
+**让 AI Agent 直接发送 SPSS Syntax 给你的本地 IBM SPSS 执行** — IBM SPSS 完成所有计算，AI 只负责发送语法和读取输出。
+
+> **核心原则：IBM SPSS 负责所有计算。** MCP Server 是 AI 和 IBM SPSS 之间的桥梁 — AI 生成 SPSS Syntax，MCP Server 把它发送给你的 IBM SPSS，IBM SPSS 执行分析并返回输出，AI 读取输出帮你解读。AI 本身不做任何统计计算。每一个数字、每一个 p 值、每一个检验统计量都来自 IBM SPSS。
 
 ## 工作原理
 
 ```
-你的对话 → AI Agent → MCP Server → 本地 IBM SPSS → 结果返回 → AI 解读
+你的对话 → AI 生成 SPSS Syntax → MCP Server 发送给 IBM SPSS → IBM SPSS 执行分析 → 输出返回 → AI 解读
 ```
 
 安装后，AI 可以：
 - 打开你的 SPSS 数据文件（.sav / .csv / .xlsx）
-- 自动执行任何统计分析（t 检验、ANOVA、回归、因子分析……）
-- 直接获取分析结果并解读
-- 导出报告为 Word / HTML / PDF
+- 发送任何统计分析语法给 IBM SPSS（t 检验、ANOVA、回归、因子分析……）
+- 读取 IBM SPSS 的输出并解读
+- 导出 IBM SPSS 的报告为 Word / HTML / PDF
 
-**所有计算都在你的本地 SPSS 中完成，数据不会离开你的电脑。**
+**所有计算都在你的本地 IBM SPSS 中完成。AI 不做任何计算，数据不会离开你的电脑。**
 
 ---
 
@@ -177,12 +179,13 @@ MCP Server 启动时会自动查找你电脑上的 IBM SPSS，搜索顺序：
 ```
 你: 帮我分析 data.sav 里的数据，比较男女在成绩上的差异
 
-AI: [调用 spss_connect → 连接 SPSS]
-    [调用 spss_open_data → 打开 data.sav]
-    [调用 spss_get_variables → 查看变量]
-    [调用 spss_ttest → 执行独立样本 t 检验]
-    → 输出结果并解读：
-    "独立样本 t 检验结果表明，女生 (M=82.3, SD=11.2) 的成绩
+AI: [调用 spss_connect → 发现并连接本地 IBM SPSS]
+    [调用 spss_open_data → 让 IBM SPSS 打开 data.sav]
+    [调用 spss_get_variables → 从 IBM SPSS 获取变量信息]
+    [调用 spss_ttest → 生成 Syntax 发送给 IBM SPSS 执行]
+    → IBM SPSS 执行独立样本 t 检验，返回结果
+    → AI 读取 IBM SPSS 输出并解读：
+    "IBM SPSS 的独立样本 t 检验结果显示，女生 (M=82.3, SD=11.2) 的成绩
      显著高于男生 (M=74.2, SD=13.6)，t(198)=3.42, p=.001,
      Cohen's d=0.66。"
 ```
@@ -192,12 +195,13 @@ AI: [调用 spss_connect → 连接 SPSS]
 ```
 你: 对问卷数据做因子分析和信度检验
 
-AI: [调用 spss_factor → 探索性因子分析]
-    [调用 spss_reliability → 各维度信度分析]
-    → 输出结果并解读：
-    "KMO=.85，Bartlett 检验显著 (p<.001)，适合做因子分析。
+AI: [调用 spss_factor → 生成 EFA Syntax 发送给 IBM SPSS]
+    [调用 spss_reliability → 生成信度分析 Syntax 发送给 IBM SPSS]
+    → IBM SPSS 执行因子分析和信度分析，返回结果
+    → AI 读取 IBM SPSS 输出并解读：
+    "IBM SPSS 因子分析结果：KMO=.85，Bartlett 检验显著 (p<.001)。
      提取 3 个因子，累计方差解释率 62.3%。
-     各维度 Cronbach's α 分别为 .87, .82, .79，信度良好。"
+     IBM SPSS 信度分析结果：各维度 Cronbach's α 分别为 .87, .82, .79。"
 ```
 
 ### 直接执行语法
@@ -205,8 +209,9 @@ AI: [调用 spss_factor → 探索性因子分析]
 ```
 你: 帮我做一个中介效应分析
 
-AI: [调用 spss_execute_syntax → 执行 PROCESS 宏语法]
-    → 输出结果并解读
+AI: [调用 spss_execute_syntax → 发送 PROCESS 宏语法给 IBM SPSS]
+    → IBM SPSS 执行 PROCESS 分析，返回结果
+    → AI 读取 IBM SPSS 输出并解读
 ```
 
 ---
@@ -269,7 +274,7 @@ pip install mcp
 - **协议**: MCP (Model Context Protocol) over stdio
 - **SPSS 连接**: Python spss 模块 → 命令行 → COM 自动化（三级回退）
 - **输出捕获**: OMS (Output Management System) → HTML → 解析为纯文本
-- **安全**: 所有计算在本地 SPSS 完成，数据不离开本机
+- **安全**: 所有计算在本地 IBM SPSS 完成，AI 不做任何统计计算，数据不离开本机
 - **平台**: Windows / macOS / Linux
 
 ---

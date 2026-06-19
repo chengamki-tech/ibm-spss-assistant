@@ -1,13 +1,13 @@
 # SPSS 本地程序查找与 MCP 绑定原理
 
-> 本文档解释 MCP Server 如何自动发现用户电脑上的 IBM SPSS Statistics，并建立通信。适用于所有支持 MCP 的 AI Agent（Claude Code、Codex、Gemini CLI、Cursor 等）。
+> 本文档解释 MCP Server 如何自动发现用户电脑上的 IBM SPSS Statistics，并与之建立通信。**所有统计计算均由 IBM SPSS 执行，AI 仅负责生成 Syntax 和读取输出。** 适用于所有支持 MCP 的 AI Agent（Claude Code、Codex、Gemini CLI、Cursor 等）。
 
 ---
 
 ## 一、整体架构
 
 ```
-AI Agent
+AI Agent (生成 Syntax + 读取输出 + 解读结果)
    │
    ├─ 读取 .mcp.json → 发现 spss 服务
    │
@@ -24,14 +24,15 @@ AI Agent
    │      │
    │      ├─ 第5步: 加载 SPSS Python 模块 (import spss)
    │      │      ├─ 成功 → 使用 spss_module 后端
-   │      │      └─ 失败 → 回退到命令行执行
+   │      │      └─ 失败 → 回退到命令行执行 (stats.exe -p)
    │      │
    │      └─ 连接成功 → 开始接受工具调用
    │
    └─ AI Agent 调用工具 (spss_ttest, spss_regression, ...)
           → MCP Server 生成 SPSS Syntax
-          → 通过连接发送给 SPSS 执行
-          → OMS 捕获输出 → 返回给 AI Agent
+          → 发送给 IBM SPSS 执行 (IBM SPSS 做所有计算)
+          → OMS 捕获 IBM SPSS 的输出 → 返回给 AI Agent
+          → AI 读取输出并解读 (AI 不做任何计算)
 ```
 
 ---

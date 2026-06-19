@@ -9,7 +9,11 @@
 
 **IBM SPSS Statistics Intelligent Assistant** — 6 skills based on the [Agent Skills Open Standard](https://agentskills.io), covering the entire workflow from data cleaning to paper submission. Compatible with 40+ AI agents. **Now with MCP Server for automated SPSS execution (Max Mode).**
 
-> **Two modes**: **Skill mode** (works with any AI agent — generates syntax, interprets output) · **MCP mode** (directly calls your local SPSS — fully automated execution)
+> **IBM SPSS does ALL the computation.** This project is an AI interface to your local IBM SPSS — it sends SPSS Syntax to your SPSS, IBM SPSS executes the analysis, and the AI reads the output to help you understand it. The AI never performs any statistical calculation itself. Every number, every p-value, every test statistic comes from IBM SPSS.
+
+> **Two modes**: **Skill mode** (any AI agent — generates SPSS Syntax for you to run in SPSS) · **MCP mode** (directly sends syntax to your local IBM SPSS — SPSS executes, AI reads output)
+
+> **IBM SPSS performs ALL computation.** This tool is an AI interface to your local IBM SPSS — it generates SPSS Syntax, sends it to your IBM SPSS, and reads the output. The AI never calculates any statistic. Every result comes from IBM SPSS.
 
 ### Skills
 
@@ -69,12 +73,12 @@ Works with: Claude Code · OpenAI Codex · Gemini CLI · Cursor · VS Code · Gi
 ### How it works
 
 1. **You have IBM SPSS installed** on your computer (Windows / macOS / Linux)
-2. **You tell the skill what you need** — describe your data, your research question, or paste your SPSS output
-3. **The skill generates SPSS Syntax** — copy it into your SPSS Syntax Editor and run it
-4. **You paste the SPSS output back** — the skill interprets the results in plain language
-5. **The skill writes up your results** — formatted for your paper (APA 7 / Chinese academic / other)
+2. **You tell the AI what you need** — describe your data, your research question, or paste your SPSS output
+3. **The AI generates SPSS Syntax** — copy it into your SPSS Syntax Editor and run it
+4. **IBM SPSS performs the analysis** — all computation happens inside SPSS, not in the AI
+5. **You paste the SPSS output back** — the AI interprets the results in plain language
 
-All statistical analysis is performed by your local IBM SPSS. The AI skill only assists with syntax generation, result interpretation, and report writing.
+**Important**: The AI never calculates statistics. It only generates syntax and reads IBM SPSS output. Every result comes from IBM SPSS.
 
 ---
 
@@ -83,7 +87,9 @@ All statistical analysis is performed by your local IBM SPSS. The AI skill only 
 
 **IBM SPSS Statistics 智能助手** — 基于 [Agent Skills 开放标准](https://agentskills.io) 的 6 个 Skill，覆盖从数据清洗到论文投稿的全流程。兼容 40+ 种 AI Agent。**支持 MCP Server 全自动执行（Max 版）**。
 
-> **两种模式**：**Skill 模式**（适配所有 AI Agent — 生成语法、解读输出）+ **MCP 模式**（直接调用本地 SPSS — 全自动分析执行）
+> **IBM SPSS 负责所有计算。** 本项目是 AI 到本地 IBM SPSS 的接口 — AI 发送 SPSS Syntax 给你的 SPSS，IBM SPSS 执行分析，AI 读取输出帮你理解。AI 本身不做任何统计计算。每一个数字、每一个 p 值、每一个检验统计量都来自 IBM SPSS。
+
+> **两种模式**：**Skill 模式**（任何 AI Agent — 生成 SPSS Syntax 供你在 SPSS 中运行）+ **MCP 模式**（直接发送语法给本地 SPSS — SPSS 执行，AI 读取输出）
 
 ### 安装
 
@@ -136,7 +142,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics アシスタント** — [Agent Skills 開放標準](https://agentskills.io) に基づく 6 つのスキル。データクレンジングから論文投稿までの全ワークフローをカバー。40 以上の AI エージェントに対応。
 
-> **IBM SPSS Statistics の AI アシスタントツールです。** お使いのコンピュータに IBM SPSS が必要です。このスキルは SPSS をより効率的に使うための支援をします — SPSS Syntax を生成し、SPSS 出力を解釈し、論文のセクションを作成します。すべての統計分析はローカルの IBM SPSS で実行されます。
+> **IBM SPSS Statistics の AI アシスタントツールです。** お使いのコンピュータに IBM SPSS が必要です。このスキルは SPSS をより効率的に使うための支援をします — SPSS Syntax を生成し、SPSS 出力を解釈し、論文のセクションを作成します。**すべての統計計算はローカルの IBM SPSS で実行されます。AI は一切の計算を行いません。**
 
 ### インストール
 
@@ -159,7 +165,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics 어시스턴트** — [Agent Skills 개방 표준](https://agentskills.io) 기반 6개 스킬. 데이터 정리부터 논문 제출까지 전체 워크플로우를 지원. 40개 이상의 AI 에이전트와 호환. 20개 이상의 언어 지원.
 
-> **IBM SPSS Statistics의 AI 보조 도구입니다.** 컴퓨터에 IBM SPSS가 설치되어 있어야 합니다. SPSS를 더 효율적으로 사용할 수 있도록 도와줍니다 — SPSS Syntax를 생성하고, SPSS 출력을 해석하고, 논문 섹션을 작성합니다. 모든 통계 분석은 로컬 IBM SPSS에서 수행됩니다.
+> **IBM SPSS Statistics의 AI 보조 도구입니다.** 컴퓨터에 IBM SPSS가 설치되어 있어야 합니다. SPSS를 더 효율적으로 사용할 수 있도록 도와줍니다 — SPSS Syntax를 생성하고, SPSS 출력을 해석하고, 논문 섹션을 작성합니다. **모든 통계 계산은 로컬 IBM SPSS에서 수행됩니다. AI는 어떠한 계산도 수행하지 않습니다.**
 
 ### 설치
 
@@ -204,7 +210,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Assistant IBM SPSS Statistics** — 6 compétences basées sur le [standard ouvert Agent Skills](https://agentskills.io). Couvre l'ensemble du flux de travail, du nettoyage des données à la rédaction d'articles. Compatible avec plus de 40 agents IA.
 
-> **Outil d'assistance IA pour IBM SPSS Statistics.** Vous devez avoir IBM SPSS installé sur votre ordinateur. Cette compétence vous aide à utiliser SPSS plus efficacement — elle génère la syntaxe SPSS à exécuter dans votre SPSS local, interprète les résultats et rédige les sections de votre article.
+> **Outil d'assistance IA pour IBM SPSS Statistics.** Vous devez avoir IBM SPSS installé sur votre ordinateur. Cette compétence vous aide à utiliser SPSS plus efficacement — elle génère la syntaxe SPSS à exécuter dans votre SPSS local, interprète les résultats et rédige les sections de votre article. **Tous les calculs statistiques sont effectués par IBM SPSS. L'IA n'effectue aucun calcul.**
 
 ### Installation
 
@@ -226,7 +232,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics Assistent** — 6 Fähigkeiten basierend auf dem [Agent Skills Open Standard](https://agentskills.io). Deckt den gesamten Workflow von der Datenbereinigung bis zur Manuskripterstellung ab. Kompatibel mit über 40 KI-Agenten.
 
-> **KI-Assistent für IBM SPSS Statistics.** Sie benötigen IBM SPSS auf Ihrem Computer installiert. Dieses Skill hilft Ihnen, SPSS effektiver zu nutzen — es generiert SPSS Syntax für Ihre lokale SPSS-Installation, interpretiert die Ergebnisse und schreibt Abschnitte für Ihre Arbeit.
+> **KI-Assistent für IBM SPSS Statistics.** Sie benötigen IBM SPSS auf Ihrem Computer installiert. Dieses Skill hilft Ihnen, SPSS effektiver zu nutzen — es generiert SPSS Syntax für Ihre lokale SPSS-Installation, interpretiert die Ergebnisse und schreibt Abschnitte für Ihre Arbeit. **Alle statistischen Berechnungen werden von IBM SPSS durchgeführt. Die KI führt keine Berechnungen durch.**
 
 ### Installation
 
@@ -247,7 +253,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Assistente IBM SPSS Statistics** — 6 habilidades baseadas no [Padrão Aberto Agent Skills](https://agentskills.io). Cobrindo todo o fluxo de trabalho, da limpeza de dados à redação do artigo. Compatível com mais de 40 agentes de IA.
 
-> **Ferramenta de assistência com IA para IBM SPSS Statistics.** Você precisa ter o IBM SPSS instalado em seu computador. Esta habilidade ajuda você a usar o SPSS de forma mais eficiente — gera sintaxe SPSS para executar no seu SPSS local, interpreta os resultados e redige seções do artigo.
+> **Ferramenta de assistência com IA para IBM SPSS Statistics.** Você precisa ter o IBM SPSS instalado em seu computador. Esta habilidade ajuda você a usar o SPSS de forma mais eficiente — gera sintaxe SPSS para executar no seu SPSS local, interpreta os resultados e redige seções do artigo. **Todos os cálculos estatísticos são realizados pelo IBM SPSS. A IA não realiza nenhum cálculo.**
 
 ### Instalação
 
@@ -268,7 +274,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Ассистент IBM SPSS Statistics** — 6 навыков на основе [открытого стандарта Agent Skills](https://agentskills.io). Охватывает весь рабочий процесс от очистки данных до написания статьи. Совместим с более чем 40 ИИ-агентами.
 
-> **ИИ-ассистент для IBM SPSS Statistics.** Необходимо установить IBM SPSS на вашем компьютере. Этот навык помогает эффективнее использовать SPSS — генерирует синтаксис SPSS для запуска в локальном SPSS, интерпретирует результаты и помогает написать текст статьи.
+> **ИИ-ассистент для IBM SPSS Statistics.** Необходимо установить IBM SPSS на вашем компьютере. Этот навык помогает эффективнее использовать SPSS — генерирует синтаксис SPSS для запуска в локальном SPSS, интерпретирует результаты и помогает написать текст статьи. **Все статистические расчёты выполняются IBM SPSS. ИИ не производит никаких расчётов.**
 
 ### Установка
 
@@ -289,7 +295,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **مساعد IBM SPSS Statistics** — 6 مهارات بناءً على [المعيار المفتوح Agent Skills](https://agentskills.io). يغطي سير العمل بالكامل من تنظيف البيانات إلى كتابة البحث. متوافق مع أكثر من 40 وكيل ذكاء اصطناعي.
 
-> **أداة مساعدة بالذكاء الاصطناعي لـ IBM SPSS Statistics.** تحتاج إلى تثبيت IBM SPSS على جهاز الكمبيوتر الخاص بك. يساعدك هذا المهارة على استخدام SPSS بشكل أكثر كفاءة — يتم إنشاء بناء جملة SPSS للتشغيل في SPSS المحلي الخاص بك، وتفسير النتائج، وكتابة أقسام البحث.
+> **أداة مساعدة بالذكاء الاصطناعي لـ IBM SPSS Statistics.** تحتاج إلى تثبيت IBM SPSS على جهاز الكمبيوتر الخاص بك. يساعدك هذا المهارة على استخدام SPSS بشكل أكثر كفاءة — يتم إنشاء بناء جملة SPSS للتشغيل في SPSS المحلي الخاص بك، وتفسير النتائج، وكتابة أقسام البحث. **جميع العمليات الإحصائية يتم تنفيذها بواسطة IBM SPSS. لا يقوم الذكاء الاصطناعي بأي حسابات.**
 
 ### التثبيت
 
@@ -310,7 +316,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **ผู้ช่วย IBM SPSS Statistics** — 6 ทักษะตาม [มาตรฐานเปิด Agent Skills](https://agentskills.io) ครอบคลุมขั้นตอนการทำงานทั้งหมดตั้งแต่การล้างข้อมูลไปจนถึงการเขียนบทความ รองรับเอเจนต์ AI กว่า 40 ตัว
 
-> **เครื่องมือช่วยเหลือด้วย AI สำหรับ IBM SPSS Statistics.** คุณจำเป็นต้องติดตั้ง IBM SPSS บนคอมพิวเตอร์ของคุณ ทักษะนี้ช่วยให้คุณใช้ SPSS ได้อย่างมีประสิทธิภาพยิ่งขึ้น — สร้าง SPSS Syntax สำหรับรันใน SPSS บนเครื่องของคุณ ตีความผลลัพธ์ และเขียนส่วนบทความ
+> **เครื่องมือช่วยเหลือด้วย AI สำหรับ IBM SPSS Statistics.** คุณจำเป็นต้องติดตั้ง IBM SPSS บนคอมพิวเตอร์ของคุณ ทักษะนี้ช่วยให้คุณใช้ SPSS ได้อย่างมีประสิทธิภาพยิ่งขึ้น — สร้าง SPSS Syntax สำหรับรันใน SPSS บนเครื่องของคุณ ตีความผลลัพธ์ และเขียนส่วนบทความ **การคำนวณทางสถิติทั้งหมดดำเนินการโดย IBM SPSS AI ไม่ทำการคำนวณใดๆ**
 
 ### การติดตั้ง
 
@@ -331,7 +337,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Trợ lý IBM SPSS Statistics** — 6 kỹ năng dựa trên [Tiêu chuẩn mở Agent Skills](https://agentskills.io). Bao gồm toàn bộ quy trình từ làm sạch dữ liệu đến viết bài báo khoa học. Tương thích với hơn 40 AI agent.
 
-> **Công cụ hỗ trợ AI cho IBM SPSS Statistics.** Bạn cần cài đặt IBM SPSS trên máy tính. Kỹ năng này giúp bạn sử dụng SPSS hiệu quả hơn — tạo cú pháp SPSS để chạy trên SPSS cục bộ, diễn giải kết quả và viết các phần bài báo.
+> **Công cụ hỗ trợ AI cho IBM SPSS Statistics.** Bạn cần cài đặt IBM SPSS trên máy tính. Kỹ năng này giúp bạn sử dụng SPSS hiệu quả hơn — tạo cú pháp SPSS để chạy trên SPSS cục bộ, diễn giải kết quả và viết các phần bài báo. **Tất cả các phép tính thống kê được thực hiện bởi IBM SPSS. AI không thực hiện bất kỳ phép tính nào.**
 
 ### Cài đặt
 
@@ -352,7 +358,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics सहायक** — [Agent Skills खुले मानक](https://agentskills.io) पर आधारित 6 कौशल। डेटा सफाई से लेकर पेपर लेखन तक संपूर्ण वर्कफ़्लो कवर करता है। 40+ AI एजेंट्स के साथ संगत।
 
-> **IBM SPSS Statistics के लिए AI सहायक उपकरण।** आपके कंप्यूटर पर IBM SPSS इंस्टॉल होना आवश्यक है। यह कौशल आपको SPSS को अधिक प्रभावी ढंग से उपयोग करने में मदद करता है — आपके स्थानीय SPSS में चलाने के लिए SPSS Syntax उत्पन्न करता है, परिणामों की व्याख्या करता है और पेपर लिखने में मदद करता है।
+> **IBM SPSS Statistics के लिए AI सहायक उपकरण।** आपके कंप्यूटर पर IBM SPSS इंस्टॉल होना आवश्यक है। यह कौशल आपको SPSS को अधिक प्रभावी ढंग से उपयोग करने में मदद करता है — आपके स्थानीय SPSS में चलाने के लिए SPSS Syntax उत्पन्न करता है, परिणामों की व्याख्या करता है और पेपर लिखने में मदद करता है। **सभी सांख्यिकीय गणनाएँ IBM SPSS द्वारा की जाती हैं। AI कोई गणना नहीं करता।**
 
 ### इंस्टॉलेशन
 
@@ -373,7 +379,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics Asistanı** — [Agent Skills Açık Standardı](https://agentskills.io) tabanlı 6 beceri. Veri temizliğinden makale yazımına kadar tüm iş akışını kapsar. 40'tan fazla AI ajanıyla uyumlu.
 
-> **IBM SPSS Statistics için AI asistan aracı.** Bilgisayarınızda IBM SPSS kurulu olmalıdır. Bu beceri, SPSS'i daha verimli kullanmanıza yardımcı olur — yerel SPSS'inizde çalıştırmak için SPSS Sözdizimi oluşturur, sonuçları yorumlar ve makale bölümleri yazar.
+> **IBM SPSS Statistics için AI asistan aracı.** Bilgisayarınızda IBM SPSS kurulu olmalıdır. Bu beceri, SPSS'i daha verimli kullanmanıza yardımcı olur — yerel SPSS'inizde çalıştırmak için SPSS Sözdizimi oluşturur, sonuçları yorumlar ve makale bölümleri yazar. **Tüm istatistiksel hesaplamalar IBM SPSS tarafından yapılır. AI herhangi bir hesaplama yapmaz.**
 
 ### Kurulum
 
@@ -394,7 +400,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Assistente IBM SPSS Statistics** — 6 competenze basate sullo [Standard Aperto Agent Skills](https://agentskills.io). Copre l'intero workflow dalla pulizia dei dati alla stesura dell'articolo. Compatibile con oltre 40 agenti IA.
 
-> **Strumento di assistenza AI per IBM SPSS Statistics.** È necessario avere IBM SPSS installato sul computer. Questa competenza aiuta a usare SPSS in modo più efficiente — genera sintassi SPSS da eseguire nel SPSS locale, interpreta i risultati e redige sezioni dell'articolo.
+> **Strumento di assistenza AI per IBM SPSS Statistics.** È necessario avere IBM SPSS installato sul computer. Questa competenza aiuta a usare SPSS in modo più efficiente — genera sintassi SPSS da eseguire nel SPSS locale, interpreta i risultati e redige sezioni dell'articolo. **Tutti i calcoli statistici vengono eseguiti da IBM SPSS. L'IA non esegue alcun calcolo.**
 
 ### Installazione
 
@@ -409,7 +415,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Asisten IBM SPSS Statistics** — 6 keterampilan berdasarkan [Standar Terbuka Agent Skills](https://agentskills.io). Mencakup seluruh alur kerja dari pembersihan data hingga penulisan makalah. Kompatibel dengan lebih dari 40 agen AI.
 
-> **Alat bantu AI untuk IBM SPSS Statistics.** Anda perlu menginstal IBM SPSS di komputer Anda. Keterampilan ini membantu Anda menggunakan SPSS secara lebih efisien — menghasilkan SPSS Syntax untuk dijalankan di SPSS lokal Anda, menginterpretasi hasil, dan menulis bagian makalah.
+> **Alat bantu AI untuk IBM SPSS Statistics.** Anda perlu menginstal IBM SPSS di komputer Anda. Keterampilan ini membantu Anda menggunakan SPSS secara lebih efisien — menghasilkan SPSS Syntax untuk dijalankan di SPSS lokal Anda, menginterpretasi hasil, dan menulis bagian makalah. **Semua perhitungan statistik dilakukan oleh IBM SPSS. AI tidak melakukan perhitungan apapun.**
 
 ### Instalasi
 
@@ -424,7 +430,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Pembantu IBM SPSS Statistics** — 6 kemahiran berdasarkan [Standard Terbuka Agent Skills](https://agentskills.io). Meliputi keseluruhan aliran kerja dari pembersihan data hingga penulisan makalah. Serasi dengan lebih daripada 40 ejen AI.
 
-> **Alat bantuan AI untuk IBM SPSS Statistics.** Anda perlu memasang IBM SPSS di komputer anda. Kemahiran ini membantu anda menggunakan SPSS dengan lebih cekap — menjana SPSS Syntax untuk dijalankan dalam SPSS tempatan anda, mentafsirkan hasil, dan menulis bahagian makalah.
+> **Alat bantuan AI untuk IBM SPSS Statistics.** Anda perlu memasang IBM SPSS di komputer anda. Kemahiran ini membantu anda menggunakan SPSS dengan lebih cekap — menjana SPSS Syntax untuk dijalankan dalam SPSS tempatan anda, mentafsirkan hasil, dan menulis bahagian makalah. **Semua pengiraan statistik dilakukan oleh IBM SPSS. AI tidak melakukan sebarang pengiraan.**
 
 ### Pemasangan
 
@@ -439,7 +445,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **Asystent IBM SPSS Statistics** — 6 umiejętności opartych na [Otwartym Standardzie Agent Skills](https://agentskills.io). Obejmuje cały przepływ pracy od czyszczenia danych po pisanie artykułów. Kompatybilny z ponad 40 agentami AI.
 
-> **Narzędzie wspomagane AI dla IBM SPSS Statistics.** Wymagany zainstalowany IBM SPSS na komputerze. To umiejętności pomaga efektywniej korzystać z SPSS — generuje składnię SPSS do uruchomienia w lokalnym SPSS, interpretuje wyniki i pomaga pisać sekcje artykułu.
+> **Narzędzie wspomagane AI dla IBM SPSS Statistics.** Wymagany zainstalowany IBM SPSS na komputerze. To umiejętności pomaga efektywniej korzystać z SPSS — generuje składnię SPSS do uruchomienia w lokalnym SPSS, interpretuje wyniki i pomaga pisać sekcje artykułu. **Wszystkie obliczenia statystyczne są wykonywane przez IBM SPSS. AI nie wykonuje żadnych obliczeń.**
 
 ### Instalacja
 
@@ -454,7 +460,7 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 **IBM SPSS Statistics Assistent** — 6 vaardigheden gebaseerd op de [Agent Skills Open Standaard](https://agentskills.io). Dekkt de volledige workflow van gegevensopruiming tot artikelpublicatie. Compatibel met meer dan 40 AI-agenten.
 
-> **AI-hulpmiddel voor IBM SPSS Statistics.** U heeft IBM SPSS op uw computer geïnstalleerd nodig. Dit skill helpt u SPSS efficiënter te gebruiken — genereert SPSS Syntax om uit te voeren in uw lokale SPSS, interpreteert de resultaten en helpt secties van het artikel te schrijven.
+> **AI-hulpmiddel voor IBM SPSS Statistics.** U heeft IBM SPSS op uw computer geïnstalleerd nodig. Dit skill helpt u SPSS efficiënter te gebruiken — genereert SPSS Syntax om uit te voeren in uw lokale SPSS, interpreteert de resultaten en helpt secties van het artikel te schrijven. **Alle statistische berekeningen worden uitgevoerd door IBM SPSS. De AI voert geen berekeningen uit.**
 
 ### Installatie
 
@@ -464,14 +470,16 @@ claude --plugin-dir https://github.com/chengamki-tech/ibm-spss-assistant
 
 ---
 
-## MCP Server (Max Mode) — 自动执行
+## MCP Server (Max Mode) — 让 IBM SPSS 直接执行
 
-除了 Skill（手动复制粘贴），本项目还包含一个 **MCP Server**，可以让 AI Agent **直接调用你的本地 IBM SPSS**，全自动执行分析。
+除了 Skill（手动复制粘贴语法），本项目还包含一个 **MCP Server**，可以让 AI Agent **直接把 SPSS Syntax 发送给你的本地 IBM SPSS 执行**。所有计算仍然 100% 由 IBM SPSS 完成，AI 只是自动发送语法和读取输出。
 
 ```
-Skill 模式:  你 → AI 生成语法 → 你复制到 SPSS → 你运行 → 你贴回输出 → AI 解读
-MCP 模式:    你说需求 → AI 自动执行 SPSS → 结果自动返回 → AI 解读（零手动操作）
+Skill 模式:  你 → AI 生成 Syntax → 你复制到 IBM SPSS → IBM SPSS 执行 → 你贴回输出 → AI 解读
+MCP 模式:    你说需求 → AI 发送 Syntax → IBM SPSS 执行 → 输出自动返回 → AI 解读
 ```
+
+两种模式下，**统计计算都完全由 IBM SPSS 执行**。区别只是谁把语法交给 SPSS。
 
 ### MCP 安装
 
