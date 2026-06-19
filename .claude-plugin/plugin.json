@@ -1,6 +1,6 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics 智能助手 v2 — 结果解读 · 检验推荐 · Syntax 生成 · 数据清洗 · 论文报告。Multilingual — auto-detects and responds in user's language (20+ languages). Covers all SPSS analysis procedures from data cleaning to paper submission.",
+  "description": "IBM SPSS Statistics AI companion — generates SPSS Syntax for your local SPSS, interprets SPSS output, writes paper sections. Requires IBM SPSS installed. Multilingual (20+ languages). Covers all SPSS procedures from data cleaning to publication.",
   "version": "2.0.0",
   "author": {
     "name": "Amki1209",
