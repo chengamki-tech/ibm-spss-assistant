@@ -3,19 +3,19 @@ IBM SPSS Statistics Engine
 
 Connects to the local IBM SPSS installation and executes syntax.
 Supports three backends (tried in order):
-  1. spss Python module (SPSS Integration Plug-in)
-  2. Command-line stats executable
-  3. COM automation (Windows only)
+  1. spss Python module (SPSS Integration Plug-in — same Python as MCP server)
+  2. Persistent worker subprocess (SPSS's bundled Python 3.8)
+  3. COM automation (Windows only, requires SPSS GUI running)
 """
 
 import os
 import sys
 import re
-import glob
 import json
 import tempfile
 import platform
 import subprocess
+import threading
 from pathlib import Path
 
 
@@ -33,6 +33,8 @@ class SPSSEngine:
         self._spss_version = None     # e.g. '30'
         self._module = None           # The imported spss module (if backend=spss_module)
         self._com_app = None          # COM Application object (if backend=com)
+        self._worker_proc = None      # Persistent subprocess (if backend=cli)
+        self._worker_lock = threading.Lock()  # Serialise worker commands
         self._connected = False
 
     # ── public ────────────────────────────────────────────────────────────
@@ -70,7 +72,7 @@ class SPSSEngine:
         # Ensure the SPSS Python package is importable
         _add_spss_to_sys_path(self._spss_home)
 
-        # ── try backend 1: spss Python module ──
+        # ── try backend 1: spss Python module (same Python process) ──
         try:
             if "spss" not in sys.modules:
                 __import__("spss")
@@ -83,7 +85,13 @@ class SPSSEngine:
         except Exception:
             self._module = None
 
-        # ── try backend 2: COM (Windows only) — preferred when SPSS GUI is running ──
+        # ── try backend 2: persistent worker subprocess ──
+        if self._start_worker():
+            self._backend = "cli"
+            self._connected = True
+            return self._status_dict("connected")
+
+        # ── try backend 3: COM (Windows only) — requires SPSS GUI running ──
         if platform.system() == "Windows":
             try:
                 import win32com.client  # type: ignore
@@ -93,14 +101,6 @@ class SPSSEngine:
                 return self._status_dict("connected")
             except Exception:
                 self._com_app = None
-
-        # ── try backend 3: command-line executable ──
-        exe = self._spss_exe or _find_exe(self._spss_home)
-        if exe and os.path.isfile(exe):
-            self._spss_exe = exe
-            self._backend = "cli"
-            self._connected = True
-            return self._status_dict("connected")
 
         return {
             "status": "connection_failed",
@@ -113,6 +113,8 @@ class SPSSEngine:
         }
 
     def disconnect(self) -> dict:
+        if self._backend == "cli" and self._worker_proc:
+            self._stop_worker()
         self._connected = False
         self._backend = None
         self._module = None
@@ -169,7 +171,15 @@ class SPSSEngine:
                 }
                 for i in range(n)
             ]
-        # For CLI / COM fall back to DISPLAY DICTIONARY
+
+        if self._backend == "cli" and self._worker_proc:
+            resp = self._worker_cmd({"cmd": "get_variables"})
+            if resp.get("ok"):
+                return resp.get("variables", [])
+            # Fallback to DISPLAY DICTIONARY
+            pass
+
+        # Fallback for COM or worker failure
         out = self.execute("DISPLAY DICTIONARY.")
         return [{"raw": out}]
 
@@ -178,10 +188,114 @@ class SPSSEngine:
             raise SPSSError("Not connected to SPSS.")
         if self._backend == "spss_module":
             return self._module.GetCaseCount()
+        if self._backend == "cli" and self._worker_proc:
+            resp = self._worker_cmd({"cmd": "get_case_count"})
+            if resp.get("ok"):
+                return resp.get("count", -1)
         return -1  # unknown
 
     def is_connected(self) -> bool:
         return self._connected
+
+    # ── private: persistent worker subprocess ─────────────────────────────
+    def _start_worker(self) -> bool:
+        """Launch the persistent SPSS worker subprocess. Returns True on success."""
+        worker_script = os.path.join(
+            os.path.dirname(__file__), "spss_worker.py"
+        )
+        if not os.path.isfile(worker_script):
+            return False
+
+        # Find SPSS's Python interpreter
+        py_exe = self._find_spss_python()
+        if not py_exe:
+            # Try statisticspython3.bat
+            bat = os.path.join(self._spss_home, "statisticspython3.bat")
+            if os.path.isfile(bat):
+                cmd = [bat, worker_script]
+            else:
+                return False
+        else:
+            cmd = [py_exe, worker_script]
+
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,  # line-buffered
+            )
+        except Exception:
+            return False
+
+        # Read the "ready" response
+        try:
+            line = proc.stdout.readline()
+            resp = json.loads(line)
+            if resp.get("ok") and resp.get("status") == "ready":
+                self._worker_proc = proc
+                return True
+        except Exception:
+            pass
+
+        # Worker failed to start — clean up
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return False
+
+    def _stop_worker(self):
+        """Gracefully stop the worker subprocess."""
+        proc = self._worker_proc
+        self._worker_proc = None
+        if proc:
+            try:
+                proc.stdin.write(json.dumps({"cmd": "quit"}) + "\n")
+                proc.stdin.flush()
+                proc.wait(timeout=5)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
+    def _worker_cmd(self, cmd: dict) -> dict:
+        """Send a command to the worker and return the response dict."""
+        if not self._worker_proc:
+            return {"ok": False, "error": "Worker not running"}
+
+        with self._worker_lock:
+            proc = self._worker_proc
+            try:
+                line = json.dumps(cmd, ensure_ascii=False) + "\n"
+                proc.stdin.write(line)
+                proc.stdin.flush()
+                resp_line = proc.stdout.readline()
+                if not resp_line:
+                    # Worker died — try to restart once
+                    self._worker_proc = None
+                    raise SPSSError("SPSS worker subprocess died unexpectedly.")
+                return json.loads(resp_line)
+            except (BrokenPipeError, OSError) as exc:
+                self._worker_proc = None
+                raise SPSSError(f"SPSS worker communication error: {exc}") from exc
+
+    def _find_spss_python(self) -> str | None:
+        """Find the SPSS Python interpreter."""
+        patterns = [
+            os.path.join(self._spss_home, "Python3", "python.exe"),
+            os.path.join(self._spss_home, "Python", "python.exe"),
+            os.path.join(self._spss_home, "Python3", "python"),
+            os.path.join(self._spss_home, "Python", "python"),
+        ]
+        for p in patterns:
+            if os.path.isfile(p):
+                return p
+        return None
 
     # ── private: backends ─────────────────────────────────────────────────
     def _exec_module(self, syntax: str, capture: bool) -> str:
@@ -211,97 +325,15 @@ class SPSSEngine:
         return text
 
     def _exec_cli(self, syntax: str, capture: bool) -> str:
-        # Build a Python script that uses the SPSS module to execute syntax
-        # This avoids launching the SPSS GUI and runs in true batch mode
-        py_script = tempfile.mktemp(suffix=".py")
-        out_file = tempfile.mktemp(suffix=".html")
-
-        # Escape backslashes for SPSS syntax paths
-        out_path = out_file.replace("\\", "/")
-
-        # Write a Python script that imports spss and runs the syntax
-        with open(py_script, "w", encoding="utf-8") as f:
-            f.write("import spss, sys\n")
-            f.write("try:\n")
-            if capture:
-                f.write(f"    spss.Submit(\"OMS /SELECT ALL /DESTINATION FORMAT=HTML OUTFILE='{out_path}'.\")\n")
-            # Write syntax line by line to handle multi-line syntax
-            for line in syntax.strip().split("\n"):
-                escaped = line.replace("\\", "\\\\").replace('"', '\\"').strip()
-                if escaped:
-                    f.write(f'    spss.Submit("{escaped}")\n')
-            if capture:
-                f.write("    spss.Submit(\"OMSEND.\")\n")
-            f.write("except Exception as e:\n")
-            f.write("    print(f'SPSS_ERROR: {e}', file=sys.stderr)\n")
-            f.write("    sys.exit(1)\n")
-
-        # Find the statisticspython3.bat script in SPSS home
-        bat_script = os.path.join(self._spss_home, "statisticspython3.bat")
-        if not os.path.isfile(bat_script):
-            # Fallback: try to find Python3 in SPSS home and run directly
-            py_exe = self._find_spss_python()
-            if not py_exe:
-                raise SPSSError("Cannot find SPSS Python interpreter.")
-            cmd = [py_exe, py_script]
-        else:
-            cmd = [bat_script, py_script]
-
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300,
-                cwd=os.path.dirname(py_script),
-            )
-        except subprocess.TimeoutExpired:
-            raise SPSSError("SPSS execution timed out (300 s).")
-        except FileNotFoundError:
-            raise SPSSError(f"SPSS batch script not found: {cmd[0]}")
-
-        _try_remove(py_script)
-
-        # Filter out Java/registry warnings from stderr
-        stderr_clean = result.stderr.strip()
-        if stderr_clean:
-            lines = stderr_clean.split("\n")
-            real_errors = [
-                l for l in lines
-                if l.strip()
-                and "WARNING:" not in l
-                and "java.util.prefs" not in l
-                and "WindowsPreferences" not in l
-                and "RegCreateKeyEx" not in l
-                and "WindowsRegOpenKey" not in l
-                and "BackingStoreException" not in l
-                and "windows registry node" not in l.lower()
-                and not l.strip().startswith("at ")
-                and not l.strip().startswith("\tat ")
-                and "SPSS_ERROR" in l
-            ]
-            stderr_clean = "\n".join(real_errors).strip()
-
-        if result.returncode != 0 and stderr_clean:
-            raise SPSSError(f"SPSS error: {stderr_clean}")
-
-        if capture:
-            text = _read_and_clean(out_file)
-            return text
-        return "[executed]"
-
-    def _find_spss_python(self) -> str | None:
-        """Find the SPSS Python interpreter."""
-        patterns = [
-            os.path.join(self._spss_home, "Python3", "python.exe"),
-            os.path.join(self._spss_home, "Python", "python.exe"),
-            os.path.join(self._spss_home, "Python3", "python"),
-            os.path.join(self._spss_home, "Python", "python"),
-        ]
-        for p in patterns:
-            if os.path.isfile(p):
-                return p
-        return None
+        """Execute syntax via the persistent worker subprocess."""
+        resp = self._worker_cmd({
+            "cmd": "execute",
+            "syntax": syntax,
+            "capture": capture,
+        })
+        if resp.get("ok"):
+            return resp.get("output", "[executed]")
+        raise SPSSError(f"SPSS error: {resp.get('error', 'unknown error')}")
 
     def _exec_com(self, syntax: str, capture: bool) -> str:
         app = self._com_app
@@ -402,7 +434,6 @@ def _detect_spss():
 
     # ── 3. Common install directories ────────────────────────────────────
     if system == "Windows":
-        # Roots to search
         roots = [
             os.environ.get("ProgramFiles", r"C:\Program Files"),
             os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
@@ -413,12 +444,6 @@ def _detect_spss():
             "C:\\",
             "D:\\",
         ]
-        # Common subpath patterns — most users have something like
-        # C:\Program Files\IBM\SPSS\Statistics\28\
-        # C:\Program Files\IBM\SPSS\28\
-        # C:\SPSS\
-        # C:\IBM\SPSS\Statistics\28\
-        # C:\Program Files\SPSS Inc\SPSS 28\
         subpatterns = []
         for v in range(40, 23, -1):
             subpatterns += [
@@ -441,7 +466,6 @@ def _detect_spss():
             for sub in subpatterns:
                 path = os.path.join(root, *sub)
                 if os.path.isdir(path):
-                    # Extract version from path or subpattern
                     version = "unknown"
                     for v in range(40, 23, -1):
                         if str(v) in path:
@@ -559,6 +583,7 @@ def _html_to_text(html: str) -> str:
     # Try BeautifulSoup first
     try:
         from bs4 import BeautifulSoup
+        import html as html_mod
         soup = BeautifulSoup(html, "html.parser")
         for tag in soup(["style", "script"]):
             tag.decompose()
@@ -576,7 +601,12 @@ def _html_to_text(html: str) -> str:
                 txt = el.get_text(strip=True)
                 if txt:
                     parts.append(txt)
-        return "\n\n".join(parts)
+        text = "\n\n".join(parts)
+        # Decode any remaining HTML entities
+        text = html_mod.unescape(text)
+        # Strip temp file names that leak from <title> tags
+        text = re.sub(r"^tmp\w+\.html\s*", "", text)
+        return text.strip()
     except ImportError:
         pass
 

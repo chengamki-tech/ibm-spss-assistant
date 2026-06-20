@@ -3,7 +3,9 @@
     "spss": {
       "command": "python",
       "args": ["-m", "spss_mcp"],
-      "env": {}
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
     }
   }
 }
