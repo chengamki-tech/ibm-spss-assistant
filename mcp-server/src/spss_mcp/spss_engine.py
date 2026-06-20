@@ -83,15 +83,7 @@ class SPSSEngine:
         except Exception:
             self._module = None
 
-        # ── try backend 2: command-line executable ──
-        exe = self._spss_exe or _find_exe(self._spss_home)
-        if exe and os.path.isfile(exe):
-            self._spss_exe = exe
-            self._backend = "cli"
-            self._connected = True
-            return self._status_dict("connected")
-
-        # ── try backend 3: COM (Windows only) ──
+        # ── try backend 2: COM (Windows only) — preferred when SPSS GUI is running ──
         if platform.system() == "Windows":
             try:
                 import win32com.client  # type: ignore
@@ -101,6 +93,14 @@ class SPSSEngine:
                 return self._status_dict("connected")
             except Exception:
                 self._com_app = None
+
+        # ── try backend 3: command-line executable ──
+        exe = self._spss_exe or _find_exe(self._spss_home)
+        if exe and os.path.isfile(exe):
+            self._spss_exe = exe
+            self._backend = "cli"
+            self._connected = True
+            return self._status_dict("connected")
 
         return {
             "status": "connection_failed",
@@ -211,42 +211,97 @@ class SPSSEngine:
         return text
 
     def _exec_cli(self, syntax: str, capture: bool) -> str:
-        syn_file = tempfile.mktemp(suffix=".sps")
+        # Build a Python script that uses the SPSS module to execute syntax
+        # This avoids launching the SPSS GUI and runs in true batch mode
+        py_script = tempfile.mktemp(suffix=".py")
         out_file = tempfile.mktemp(suffix=".html")
 
-        # Build a syntax file that uses OMS to capture output
-        with open(syn_file, "w", encoding="utf-8") as f:
+        # Escape backslashes for SPSS syntax paths
+        out_path = out_file.replace("\\", "/")
+
+        # Write a Python script that imports spss and runs the syntax
+        with open(py_script, "w", encoding="utf-8") as f:
+            f.write("import spss, sys\n")
+            f.write("try:\n")
             if capture:
-                f.write(
-                    f"OMS /SELECT ALL /DESTINATION FORMAT=HTML OUTFILE='{out_file.replace(chr(92), '/')}'.\n"
-                )
-            f.write(syntax)
-            f.write("\n")
+                f.write(f"    spss.Submit(\"OMS /SELECT ALL /DESTINATION FORMAT=HTML OUTFILE='{out_path}'.\")\n")
+            # Write syntax line by line to handle multi-line syntax
+            for line in syntax.strip().split("\n"):
+                escaped = line.replace("\\", "\\\\").replace('"', '\\"').strip()
+                if escaped:
+                    f.write(f'    spss.Submit("{escaped}")\n')
             if capture:
-                f.write("OMSEND.\n")
+                f.write("    spss.Submit(\"OMSEND.\")\n")
+            f.write("except Exception as e:\n")
+            f.write("    print(f'SPSS_ERROR: {e}', file=sys.stderr)\n")
+            f.write("    sys.exit(1)\n")
+
+        # Find the statisticspython3.bat script in SPSS home
+        bat_script = os.path.join(self._spss_home, "statisticspython3.bat")
+        if not os.path.isfile(bat_script):
+            # Fallback: try to find Python3 in SPSS home and run directly
+            py_exe = self._find_spss_python()
+            if not py_exe:
+                raise SPSSError("Cannot find SPSS Python interpreter.")
+            cmd = [py_exe, py_script]
+        else:
+            cmd = [bat_script, py_script]
 
         try:
             result = subprocess.run(
-                [self._spss_exe, "-p", syn_file],
+                cmd,
                 capture_output=True,
                 text=True,
                 timeout=300,
-                cwd=os.path.dirname(syn_file),
+                cwd=os.path.dirname(py_script),
             )
         except subprocess.TimeoutExpired:
             raise SPSSError("SPSS execution timed out (300 s).")
         except FileNotFoundError:
-            raise SPSSError(f"SPSS executable not found: {self._spss_exe}")
+            raise SPSSError(f"SPSS batch script not found: {cmd[0]}")
 
-        _try_remove(syn_file)
+        _try_remove(py_script)
 
-        if result.returncode != 0 and result.stderr.strip():
-            raise SPSSError(f"SPSS error: {result.stderr.strip()}")
+        # Filter out Java/registry warnings from stderr
+        stderr_clean = result.stderr.strip()
+        if stderr_clean:
+            lines = stderr_clean.split("\n")
+            real_errors = [
+                l for l in lines
+                if l.strip()
+                and "WARNING:" not in l
+                and "java.util.prefs" not in l
+                and "WindowsPreferences" not in l
+                and "RegCreateKeyEx" not in l
+                and "WindowsRegOpenKey" not in l
+                and "BackingStoreException" not in l
+                and "windows registry node" not in l.lower()
+                and not l.strip().startswith("at ")
+                and not l.strip().startswith("\tat ")
+                and "SPSS_ERROR" in l
+            ]
+            stderr_clean = "\n".join(real_errors).strip()
+
+        if result.returncode != 0 and stderr_clean:
+            raise SPSSError(f"SPSS error: {stderr_clean}")
 
         if capture:
             text = _read_and_clean(out_file)
             return text
         return "[executed]"
+
+    def _find_spss_python(self) -> str | None:
+        """Find the SPSS Python interpreter."""
+        patterns = [
+            os.path.join(self._spss_home, "Python3", "python.exe"),
+            os.path.join(self._spss_home, "Python", "python.exe"),
+            os.path.join(self._spss_home, "Python3", "python"),
+            os.path.join(self._spss_home, "Python", "python"),
+        ]
+        for p in patterns:
+            if os.path.isfile(p):
+                return p
+        return None
 
     def _exec_com(self, syntax: str, capture: bool) -> str:
         app = self._com_app
@@ -437,7 +492,7 @@ def _detect_spss():
 def _find_exe(home: str) -> str | None:
     """Find the stats executable inside *home*."""
     system = platform.system()
-    exe_names = ("stats.exe", "stats.com", "spss.exe", "spss.com") if system == "Windows" else ("stats", "spss")
+    exe_names = ("stats.com", "stats.exe", "spss.com", "spss.exe") if system == "Windows" else ("stats", "spss")
     sub_dirs = ("", "bin", "Stats", "Bin")
 
     for sub in sub_dirs:
@@ -541,3 +596,29 @@ def _try_remove(path: str) -> None:
         os.unlink(path)
     except OSError:
         pass
+
+
+def _is_spss_running() -> bool:
+    """Check if IBM SPSS Statistics is already running."""
+    system = platform.system()
+    try:
+        if system == "Windows":
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq stats.exe", "/NH"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return "stats.exe" in result.stdout
+        elif system == "Darwin":
+            result = subprocess.run(
+                ["pgrep", "-f", "SPSSStatistics"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return result.returncode == 0
+        else:
+            result = subprocess.run(
+                ["pgrep", "-f", "stats"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return result.returncode == 0
+    except Exception:
+        return False
