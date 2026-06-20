@@ -4,8 +4,8 @@ IBM SPSS Statistics Engine
 Connects to the local IBM SPSS installation and executes syntax.
 Supports three backends (tried in order):
   1. spss Python module (SPSS Integration Plug-in — same Python as MCP server)
-  2. Persistent worker subprocess (SPSS's bundled Python 3.8)
-  3. COM automation (Windows only, requires SPSS GUI running)
+  2. COM automation (Windows only, preferred when SPSS GUI is running — shares data)
+  3. Persistent worker subprocess (SPSS's bundled Python 3.8 — separate instance)
 """
 
 import os
@@ -85,14 +85,30 @@ class SPSSEngine:
         except Exception:
             self._module = None
 
+        # ── choose backend 2/3 based on whether SPSS GUI is running ──
+        # If SPSS GUI is running, prefer COM (connects to GUI's data).
+        # Otherwise, use the worker subprocess (fresh SPSS instance).
+        spss_running = _is_spss_running()
+
+        # ── try COM first when SPSS GUI is running (Windows only) ──
+        if spss_running and platform.system() == "Windows":
+            try:
+                import win32com.client  # type: ignore
+                self._com_app = win32com.client.Dispatch("SPSS.Application")
+                self._backend = "com"
+                self._connected = True
+                return self._status_dict("connected")
+            except Exception:
+                self._com_app = None
+
         # ── try backend 2: persistent worker subprocess ──
         if self._start_worker():
             self._backend = "cli"
             self._connected = True
             return self._status_dict("connected")
 
-        # ── try backend 3: COM (Windows only) — requires SPSS GUI running ──
-        if platform.system() == "Windows":
+        # ── try COM as last resort (Windows only) ──
+        if not spss_running and platform.system() == "Windows":
             try:
                 import win32com.client  # type: ignore
                 self._com_app = win32com.client.Dispatch("SPSS.Application")
@@ -143,6 +159,21 @@ class SPSSEngine:
         if not self._connected:
             raise SPSSError("Not connected to SPSS — call connect() first.")
 
+        # For CLI backend: try with OMS capture first, retry without if it fails.
+        # Certain SPSS commands (GET DATA, REGRESSION /STATISTICS, etc.) produce
+        # output that OMS cannot capture, triggering errLevel 3 "Serious error".
+        if capture and self._backend == "cli":
+            try:
+                return self._execute_with_capture(syntax)
+            except SPSSError:
+                # Retry without OMS — the command may succeed even if capture fails
+                try:
+                    self._exec_cli(syntax, capture=False)
+                    return "[executed — output capture not available for this command]"
+                except SPSSError:
+                    # Both attempts failed — raise the original error
+                    raise
+
         if self._backend == "spss_module":
             return self._exec_module(syntax, capture)
         elif self._backend == "cli":
@@ -176,12 +207,17 @@ class SPSSEngine:
             resp = self._worker_cmd({"cmd": "get_variables"})
             if resp.get("ok"):
                 return resp.get("variables", [])
-            # Fallback to DISPLAY DICTIONARY
-            pass
+            return []
 
-        # Fallback for COM or worker failure
-        out = self.execute("DISPLAY DICTIONARY.")
-        return [{"raw": out}]
+        if self._backend == "com":
+            try:
+                out = self.execute("DISPLAY DICTIONARY.")
+                parsed = _parse_display_dictionary(out)
+                if parsed:
+                    return parsed
+                return [{"raw": out}]
+            except Exception:
+                return []
 
     def get_case_count(self) -> int:
         if not self._connected:
@@ -365,6 +401,10 @@ class SPSSEngine:
             return "\n\n".join(p for p in parts if p).strip() or "[no output]"
         except Exception:
             return "[output capture not available via COM]"
+
+    def _execute_with_capture(self, syntax: str) -> str:
+        """Execute via CLI with OMS capture. Raises SPSSError on failure."""
+        return self._exec_cli(syntax, capture=True)
 
     # ── helpers ───────────────────────────────────────────────────────────
     def _status_dict(self, status: str) -> dict:
@@ -626,6 +666,86 @@ def _try_remove(path: str) -> None:
         os.unlink(path)
     except OSError:
         pass
+
+
+def _parse_display_dictionary(output: str) -> list[dict]:
+    """Parse DISPLAY DICTIONARY output into structured variable info.
+
+    SPSS DISPLAY DICTIONARY output contains blocks like:
+        Variable Information
+        Variable  Position  Label  ...
+        Name      1         "..."
+    or:
+        Variable  Measurement Level  ...
+        Name      Scale/Nominal/Ordinal
+
+    Returns a list of dicts compatible with get_variable_info output,
+    or empty list if parsing fails.
+    """
+    if not output or "Variable" not in output:
+        return []
+
+    variables = {}
+    measurement_map = {"scale": 0, "nominal": 2, "ordinal": 1}
+
+    # Pattern: extract variable blocks from DISPLAY DICTIONARY
+    # Look for "Variable Information" or "Active Dataset" header sections
+    lines = output.split("\n")
+    current_section = ""
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+
+        # Track sections
+        if "Variable Information" in stripped or "Active Dataset" in stripped:
+            current_section = stripped
+            continue
+
+        # Look for variable entries — SPSS output has patterns like:
+        # "VariableName"   ...
+        # or lines starting with a variable name followed by attributes
+        # Try to find quoted or unquoted variable names with measurement info
+        match = re.match(
+            r'^(\w[\w@$#]*?)[\s\t]+(?:\d+[\s\t]+)?(?:.*?)(Scale|Nominal|Ordinal|Unknown)',
+            stripped, re.IGNORECASE
+        )
+        if match:
+            vname = match.group(1)
+            meas_str = match.group(2).capitalize()
+            meas = measurement_map.get(meas_str.lower(), 3)
+            if vname not in variables:
+                variables[vname] = {
+                    "index": len(variables),
+                    "name": vname,
+                    "label": "",
+                    "type_width": 0,
+                    "measurement": meas,
+                    "format": 0,
+                }
+
+    # Fallback: try simpler line-based parsing
+    if not variables:
+        for line in lines:
+            stripped = line.strip()
+            # Match lines like: "VarName    Scale" or "VarName    Nominal"
+            parts = stripped.split()
+            if len(parts) >= 2:
+                last = parts[-1].capitalize()
+                if last in ("Scale", "Nominal", "Ordinal"):
+                    vname = parts[0]
+                    if vname.isidentifier() or re.match(r'^[\w@$#]+$', vname):
+                        meas = measurement_map.get(last.lower(), 3)
+                        if vname not in variables:
+                            variables[vname] = {
+                                "index": len(variables),
+                                "name": vname,
+                                "label": "",
+                                "type_width": 0,
+                                "measurement": meas,
+                                "format": 0,
+                            }
+
+    return list(variables.values()) if variables else []
 
 
 def _is_spss_running() -> bool:

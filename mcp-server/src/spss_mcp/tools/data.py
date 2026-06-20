@@ -17,6 +17,13 @@ def open_data(engine, file_path: str, encoding: str = "auto") -> str:
     -------
     str  Confirmation message with case count and variable count.
     """
+    # Validate path before sending to SPSS
+    if not os.path.isfile(file_path):
+        return (
+            f"Error: File not found: {file_path}\n"
+            f"Please check the file path and try again."
+        )
+
     file_path = os.path.abspath(file_path).replace("\\", "/")
     ext = os.path.splitext(file_path)[1].lower()
 
@@ -34,7 +41,6 @@ def open_data(engine, file_path: str, encoding: str = "auto") -> str:
             f"  /ARRANGEMENT=DELIMITED\n"
             f"  /FIRSTCASE=2\n"
             f"  /IMPORTCASE=ALL\n"
-            f"  /VARIABLES=\n"
             f"  /MAP.\n"
             f"SET UNICODE=ON."
         )
@@ -50,9 +56,40 @@ def open_data(engine, file_path: str, encoding: str = "auto") -> str:
     else:
         return f"Unsupported file format: {ext}. Supported: .sav, .csv, .xlsx, .xls, .txt, .dat"
 
-    output = engine.execute(syntax)
-    n_vars = engine.get_variable_info()
-    n_cases = engine.get_case_count()
+    try:
+        output = engine.execute(syntax)
+    except Exception as exc:
+        # Provide actionable error message with fallback suggestions
+        msg = str(exc)
+        if ext in (".xlsx", ".xls"):
+            return (
+                f"Error opening {ext} file: {msg}\n\n"
+                f"Suggestions:\n"
+                f"  1. Convert the file to .csv or .sav format and retry\n"
+                f"  2. Open the file in SPSS GUI first, then save as .sav\n"
+                f"  3. Use Python (pandas) to convert: "
+                f"pd.read_excel('{file_path}').to_csv('data.csv', index=False)"
+            )
+        elif ext in (".csv", ".txt", ".dat"):
+            return (
+                f"Error opening {ext} file: {msg}\n\n"
+                f"Suggestions:\n"
+                f"  1. Try a different encoding (pass encoding='GBK' for Chinese files)\n"
+                f"  2. Convert to .sav format using Python (pyreadstat)\n"
+                f"  3. Open in SPSS GUI first, then save as .sav"
+            )
+        else:
+            return f"Error opening file: {msg}"
+
+    # Check if output indicates an error (OMS may return error text instead of raising)
+    if output and output.startswith("Error"):
+        return output
+
+    try:
+        n_vars = engine.get_variable_info()
+        n_cases = engine.get_case_count()
+    except Exception:
+        return f"Data command executed. Please verify the dataset was loaded correctly."
 
     return (
         f"Data loaded successfully.\n"
@@ -67,7 +104,12 @@ def get_variable_info(engine) -> str:
     """Return formatted variable information for the active dataset."""
     vars_info = engine.get_variable_info()
     if not vars_info:
-        return "No dataset loaded."
+        return (
+            "No dataset loaded.\n\n"
+            "If you have data open in the SPSS GUI, please provide the file path "
+            "so the engine can load it directly, e.g.:\n"
+            "  spss_open_data(file_path='D:\\\\data\\\\yourfile.sav')"
+        )
 
     if "raw" in vars_info[0]:
         return vars_info[0]["raw"]

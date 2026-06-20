@@ -17,7 +17,26 @@ def execute_syntax(engine, syntax: str) -> str:
     if not syntax.strip():
         return "Error: No syntax provided."
 
-    return engine.execute(syntax)
+    try:
+        return engine.execute(syntax)
+    except Exception as exc:
+        msg = str(exc)
+        # Provide context-specific hints for common failures
+        hints = []
+        if "GET DATA" in syntax.upper() and ("XLSX" in syntax.upper() or "XLS" in syntax.upper()):
+            hints.append("Tip: Excel import may fail via CLI. Convert to .csv or .sav first.")
+        if "/STATISTICS" in syntax.upper() and "REGRESSION" in syntax.upper():
+            hints.append(
+                "Tip: REGRESSION /STATISTICS subcommand may fail via OMS capture.\n"
+                "Try: spss_regression(dv, ivs) tool instead, which omits problematic subcommands."
+            )
+        if "GET DATA" in syntax.upper() and "TXT" in syntax.upper():
+            hints.append("Tip: CSV/TXT import may fail via CLI. Convert to .sav format first.")
+
+        result = f"Error: {msg}"
+        if hints:
+            result += "\n\n" + "\n".join(hints)
+        return result
 
 
 def run_analysis(
@@ -43,7 +62,10 @@ def run_analysis(
     syntax = _build_syntax(analysis_type, params)
     if syntax.startswith("Error"):
         return syntax
-    return engine.execute(syntax)
+    try:
+        return engine.execute(syntax)
+    except Exception as exc:
+        return f"Error running {analysis_type}: {exc}"
 
 
 def _build_syntax(analysis_type: str, params: dict) -> str:
@@ -118,14 +140,9 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
         method = params.get("method", "ENTER")
         return (
             f"REGRESSION\n"
-            f"  /DESCRIPTIVES MEAN STDDEV CORR SIG N\n"
             f"  /MISSING LISTWISE\n"
-            f"  /STATISTICS COEFF OUTS CI(95) R ANOVA COLLIN TOL CHANGE\n"
-            f"  /CRITERIA=PIN(.05) POUT(.10)\n"
             f"  /DEPENDENT {dv}\n"
-            f"  /METHOD={method}({ivs})\n"
-            f"  /SCATTERPLOT=(*ZRESID ,*ZPRED)\n"
-            f"  /RESIDUALS DURBIN HISTOGRAM NORMPROB."
+            f"  /METHOD={method}({ivs})."
         )
 
     if at == "crosstab":
@@ -167,7 +184,6 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
             f"  /PLOT EIGEN\n"
             f"  /CRITERIA MINEIGEN(1) ITERATE(25)\n"
             f"  /EXTRACTION {extraction}\n"
-            f"  /CRITERIA ITERATE(25)\n"
             f"  /ROTATION {rotation}\n"
             f"  /METHOD=CORRELATION."
         )
@@ -175,10 +191,34 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
     if at == "logistic":
         dv = params.get("dv", "")
         ivs = params.get("ivs", "")
+        dv_type = params.get("dv_type", "binary")
+        factors = params.get("factors", "").strip()
+        covariates = params.get("covariates", "").strip()
+
+        if dv_type == "ordinal":
+            if factors and covariates:
+                return (
+                    f"PLUM {dv} BY {' '.join(factors.split(','))} WITH {' '.join(covariates.split(','))}\n"
+                    f"  /LINK=LOGIT\n"
+                    f"  /PRINT=FIT PARAMETER SUMMARY."
+                )
+            if factors:
+                return (
+                    f"PLUM {dv} BY {' '.join(factors.split(','))}\n"
+                    f"  /LINK=LOGIT\n"
+                    f"  /PRINT=FIT PARAMETER SUMMARY."
+                )
+            # Default: treat all ivs as continuous covariates
+            return (
+                f"PLUM {dv} WITH {' '.join(ivs.split(','))}\n"
+                f"  /LINK=LOGIT\n"
+                f"  /PRINT=FIT PARAMETER SUMMARY."
+            )
+
         return (
             f"LOGISTIC REGRESSION VARIABLES {dv}\n"
             f"  /METHOD=ENTER {ivs}\n"
-            f"  /PRINT=GOODFIT CI(95)\n"
+            f"  /PRINT=GOODFIT CI(95) SUMMARY\n"
             f"  /CRITERIA=PIN(0.05) POUT(0.10) ITERATE(20) CUT(0.5)."
         )
 
@@ -284,7 +324,7 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
                 f"  /CRITERIA=CLUSTER({n_clusters}) MXITER(100) CONVERGE(0)\n"
                 f"  /METHOD=KMEANS(NOUPDATE)\n"
                 f"  /SAVE CLUSTER DISTANCE\n"
-                f"  /PRINT INITIAL ANOVA CLUSTER DISTAN."
+                f"  /PRINT INITIAL ANOVA CLUSTER DISTANCE."
             )
         if "hierarchical" in method:
             return (

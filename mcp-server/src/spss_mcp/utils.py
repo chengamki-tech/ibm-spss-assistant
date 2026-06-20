@@ -54,17 +54,3 @@ def format_table(rows: list[list[str]], headers: list[str] | None = None) -> str
 def parse_variables(var_string: str) -> list[str]:
     """Parse a comma-separated variable string into a clean list."""
     return [v.strip() for v in var_string.split(",") if v.strip()]
-
-
-def sanitize_syntax(syntax: str) -> str:
-    """Basic syntax sanitization — ensure commands end with periods."""
-    lines = syntax.strip().split("\n")
-    result = []
-    for line in lines:
-        stripped = line.rstrip()
-        if stripped and not stripped.startswith("*") and not stripped.endswith(".") and not stripped.endswith("/"):
-            # Check if this is a continuation line (starts with /)
-            if not stripped.lstrip().startswith("/"):
-                stripped += "."
-        result.append(stripped)
-    return "\n".join(result)

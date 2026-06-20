@@ -292,12 +292,15 @@ TOOLS: list[Tool] = [
     ),
     Tool(
         name="spss_logistic",
-        description="Run binary logistic regression with model fit statistics, classification table, and OR confidence intervals.",
+        description="Run logistic regression with model fit statistics, classification table, and OR confidence intervals. Supports both binary (0/1) and ordinal (3+ levels) dependent variables. Auto-detects DV type.",
         inputSchema={
             "type": "object",
             "properties": {
-                "dv": {"type": "string", "description": "Dependent variable (binary, 0/1 coded)."},
+                "dv": {"type": "string", "description": "Dependent variable (binary or ordinal)."},
                 "ivs": {"type": "string", "description": "Comma-separated independent variable names."},
+                "dv_type": {"type": "string", "enum": ["auto", "binary", "ordinal"], "default": "auto", "description": "'binary' for 0/1 DV (LOGISTIC REGRESSION), 'ordinal' for 3+ ordered levels (PLUM), 'auto' to detect automatically."},
+                "factors": {"type": "string", "default": "", "description": "Comma-separated categorical IV names for ordinal regression (PLUM ... BY ...). Ignored for binary."},
+                "covariates": {"type": "string", "default": "", "description": "Comma-separated continuous IV names for ordinal regression (PLUM ... WITH ...). Ignored for binary."},
             },
             "required": ["dv", "ivs"],
         },
@@ -534,7 +537,12 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> list[TextConten
 
     if name == "spss_logistic":
         try:
-            return _ok(logistic(engine, arguments["dv"], arguments["ivs"]))
+            return _ok(logistic(
+                engine, arguments["dv"], arguments["ivs"],
+                arguments.get("dv_type", "auto"),
+                arguments.get("factors", ""),
+                arguments.get("covariates", ""),
+            ))
         except SPSSError as e:
             return _err(str(e))
 
