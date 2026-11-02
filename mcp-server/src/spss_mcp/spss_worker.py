@@ -43,7 +43,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Step 2: Import spss AFTER redirecting fd 1 ───────────────────────
-import spss  # SPSS Integration Plug-in (only available in SPSS's Python)
+spss = None  # Imported in main, after stdout isolation.
 
 
 def _write_response(obj):
@@ -55,34 +55,26 @@ def _write_response(obj):
 
 def _capture_execute(syntax):
     """Execute syntax with OMS output capture, return cleaned text."""
-    out_file = tempfile.mktemp(suffix=".html")
-    out_path = out_file.replace("\\", "/")
-    try:
-        spss.Submit(
-            "OMS /SELECT ALL /DESTINATION FORMAT=HTML OUTFILE='{}'.".format(out_path)
-        )
-        spss.Submit(syntax)
-        spss.Submit("OMSEND.")
-    except Exception as exc:
-        # Try to close OMS even on error
+    with tempfile.TemporaryDirectory(prefix="spss-mcp-") as directory:
+        out_file = os.path.join(directory, "output.html")
+        out_path = out_file.replace("\\", "/").replace("'", "''")
         try:
+            spss.Submit("OMS /SELECT ALL /DESTINATION FORMAT=HTML OUTFILE='{}'.".format(out_path))
+            spss.Submit(syntax)
+        finally:
             spss.Submit("OMSEND.")
-        except Exception:
-            pass
-        raise RuntimeError(str(exc))
-
-    return _read_and_clean(out_file)
+        return _read_and_clean(out_file)
 
 
 def _read_and_clean(path):
     """Read OMS HTML output and convert to plain text."""
     if not os.path.isfile(path):
-        return "[no output file produced]"
+        raise RuntimeError("SPSS produced no output file; command outcome is unknown.")
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             html = f.read()
     except Exception as exc:
-        return "[could not read output: {}]".format(exc)
+        raise RuntimeError("Could not read SPSS output: {}".format(exc))
     finally:
         try:
             os.unlink(path)
@@ -96,36 +88,6 @@ def _html_to_text(html):
     """Convert SPSS OMS HTML to readable plain text."""
     if not html.strip():
         return ""
-
-    # Try BeautifulSoup first
-    try:
-        from bs4 import BeautifulSoup
-        import html as html_mod
-        soup = BeautifulSoup(html, "html.parser")
-        for tag in soup(["style", "script"]):
-            tag.decompose()
-        parts = []
-        for el in soup.find_all(["h1", "h2", "h3", "h4", "p", "table", "div"]):
-            if el.name == "table":
-                rows = []
-                for tr in el.find_all("tr"):
-                    cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
-                    if cells:
-                        rows.append("\t".join(cells))
-                if rows:
-                    parts.append("\n".join(rows))
-            else:
-                txt = el.get_text(strip=True)
-                if txt:
-                    parts.append(txt)
-        text = "\n\n".join(parts)
-        # Decode any remaining HTML entities
-        text = html_mod.unescape(text)
-        # Strip temp file names that leak from <title> tags
-        text = re.sub(r"^tmp\w+\.html\s*", "", text)
-        return text.strip()
-    except ImportError:
-        pass
 
     # Fallback: naive regex
     import html as html_mod
@@ -163,6 +125,13 @@ def _get_case_count():
 
 
 def main():
+    global spss
+    try:
+        import spss as integration
+        spss = integration
+    except Exception as exc:
+        _write_response({"ok": False, "error": "SPSS Integration import failed: {}".format(exc)})
+        return
     # Initialise the SPSS processor
     try:
         spss.Submit("")

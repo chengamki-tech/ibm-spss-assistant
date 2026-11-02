@@ -1,6 +1,6 @@
 {
   "name": "ibm-spss-assistant",
-  "description": "IBM SPSS Statistics Max — AI companion + MCP Server. Skills generate SPSS Syntax & interpret output for any AI agent. MCP Server enables direct automated execution in your local SPSS (26 tools). Requires IBM SPSS installed. Multilingual (20+ languages).",
+  "description": "Local stdio MCP server with 27 SPSS tools plus statistical guidance skills. Discovery works without SPSS; execution requires licensed local IBM SPSS Python Integration. UTF-8 data and multilingual agent guidance.",
   "version": "3.0.0",
   "author": {
     "name": "Amki1209",

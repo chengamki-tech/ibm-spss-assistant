@@ -1,8 +1,10 @@
 """Quick analysis tools — simplified interfaces for common analyses."""
 
 from __future__ import annotations
+from ..validation import validated
 
 
+@validated
 def descriptives(engine, variables: str = "ALL") -> str:
     """Run descriptive statistics."""
     syntax = (
@@ -12,6 +14,7 @@ def descriptives(engine, variables: str = "ALL") -> str:
     return engine.execute(syntax)
 
 
+@validated
 def frequency(engine, variables: str) -> str:
     """Run frequency analysis with bar charts."""
     syntax = (
@@ -22,6 +25,7 @@ def frequency(engine, variables: str) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def ttest(engine, dv: str, group: str, groups: str = "1 2") -> str:
     """Run independent samples t-test."""
     syntax = (
@@ -33,6 +37,7 @@ def ttest(engine, dv: str, group: str, groups: str = "1 2") -> str:
     return engine.execute(syntax)
 
 
+@validated
 def ttest_paired(engine, var1: str, var2: str) -> str:
     """Run paired samples t-test."""
     syntax = (
@@ -43,6 +48,7 @@ def ttest_paired(engine, var1: str, var2: str) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def anova(engine, dv: str, factor: str, posthoc: str = "TUKEY BONFERRONI") -> str:
     """Run one-way ANOVA with post-hoc tests."""
     syntax = (
@@ -54,6 +60,7 @@ def anova(engine, dv: str, factor: str, posthoc: str = "TUKEY BONFERRONI") -> st
     return engine.execute(syntax)
 
 
+@validated
 def correlation(engine, variables: str, method: str = "PEARSON") -> str:
     """Run bivariate correlation analysis."""
     if method.upper() == "SPEARMAN":
@@ -73,6 +80,7 @@ def correlation(engine, variables: str, method: str = "PEARSON") -> str:
     return engine.execute(syntax)
 
 
+@validated
 def regression(engine, dv: str, ivs: str, method: str = "ENTER") -> str:
     """Run linear regression.
 
@@ -85,11 +93,12 @@ def regression(engine, dv: str, ivs: str, method: str = "ENTER") -> str:
         f"REGRESSION\n"
         f"  /MISSING LISTWISE\n"
         f"  /DEPENDENT {dv}\n"
-        f"  /METHOD={method}({ivs})."
+        f"  /METHOD={method} {ivs}."
     )
     return engine.execute(syntax)
 
 
+@validated
 def crosstab(engine, row_var: str, col_var: str) -> str:
     """Run cross-tabulation with chi-square test."""
     syntax = (
@@ -104,6 +113,7 @@ def crosstab(engine, row_var: str, col_var: str) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def reliability(engine, items: str, scale_name: str = "Scale") -> str:
     """Run Cronbach's alpha reliability analysis."""
     syntax = (
@@ -117,6 +127,7 @@ def reliability(engine, items: str, scale_name: str = "Scale") -> str:
     return engine.execute(syntax)
 
 
+@validated
 def factor(engine, variables: str, rotation: str = "VARIMAX") -> str:
     """Run exploratory factor analysis."""
     syntax = (
@@ -134,16 +145,17 @@ def factor(engine, variables: str, rotation: str = "VARIMAX") -> str:
     return engine.execute(syntax)
 
 
-def logistic(engine, dv: str, ivs: str, dv_type: str = "auto",
+@validated
+def logistic(engine, dv: str, ivs: str, dv_type: str = "binary",
              factors: str = "", covariates: str = "") -> str:
-    """Run logistic regression — automatically selects binary or ordinal.
+    """Run logistic regression with an explicit binary or ordinal outcome type.
 
     Parameters
     ----------
     dv         : str  Dependent variable name.
     ivs        : str  Comma-separated independent variable names (used when
                       factors/covariates are not specified).
-    dv_type    : str  'auto' (detect), 'binary' (0/1 DV → LOGISTIC REGRESSION),
+    dv_type    : str  'binary' (0/1 DV → LOGISTIC REGRESSION),
                       'ordinal' (3+ ordered DV → PLUM).
     factors    : str  Comma-separated categorical IV names (PLUM ... BY ...).
                       When empty, falls back to ivs treated as covariates for
@@ -152,9 +164,6 @@ def logistic(engine, dv: str, ivs: str, dv_type: str = "auto",
                       When empty and dv_type is ordinal, all ivs are used as
                       covariates (safer default for survey data).
     """
-    # ── Auto-detect DV type ───────────────────────────────────────────────
-    if dv_type == "auto":
-        dv_type = _detect_dv_type(engine, dv)
 
     # ── Build PLUM syntax (ordinal DV) ────────────────────────────────────
     if dv_type == "ordinal":
@@ -194,48 +203,12 @@ def logistic(engine, dv: str, ivs: str, dv_type: str = "auto",
     return engine.execute(syntax)
 
 
-def _detect_dv_type(engine, dv: str) -> str:
-    """Auto-detect whether DV is binary or ordinal by counting unique values."""
-    try:
-        freq_output = engine.execute(f"FREQUENCIES VARIABLES={dv}.")
-        # Parse frequency table: look for lines starting with a numeric value
-        # followed by a count column.  SPSS frequency output format:
-        #   1.00    37   54.4   54.4   54.4
-        #   2.00    19   27.9   27.9   82.4
-        numeric_values = set()
-        in_table = False
-        for line in freq_output.split("\n"):
-            stripped = line.strip()
-            if not stripped:
-                continue
-            # Detect start of frequency table (after "Valid" header)
-            if "Frequency" in stripped and "Percent" in stripped:
-                in_table = True
-                continue
-            if in_table:
-                parts = stripped.split()
-                if len(parts) >= 2:
-                    try:
-                        val = float(parts[0])
-                        count = int(float(parts[1]))
-                        if count > 0:
-                            numeric_values.add(val)
-                    except (ValueError, IndexError):
-                        # End of table or non-data line
-                        if stripped.startswith("Total"):
-                            break
-        if len(numeric_values) > 2:
-            return "ordinal"
-        return "binary"
-    except Exception:
-        return "binary"
-
-
 def _to_spss_list(var_string: str) -> str:
     """Convert comma-separated variable string to space-separated SPSS list."""
     return " ".join(v.strip() for v in var_string.split(",") if v.strip())
 
 
+@validated
 def explore(engine, variables: str, group: str | None = None) -> str:
     """Run Explore (descriptives + normality tests + boxplots)."""
     group_part = f" BY {group}" if group else ""
@@ -251,6 +224,7 @@ def explore(engine, variables: str, group: str | None = None) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def means_compare(engine, dv: str, group: str) -> str:
     """Run Means procedure — group-level descriptive stats with ANOVA table."""
     syntax = (
@@ -260,6 +234,7 @@ def means_compare(engine, dv: str, group: str) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def normality_test(engine, variables: str) -> str:
     """Run normality tests (Shapiro-Wilk + K-S) via Explore."""
     syntax = (
@@ -271,6 +246,7 @@ def normality_test(engine, variables: str) -> str:
     return engine.execute(syntax)
 
 
+@validated
 def levenes_test(engine, dv: str, group: str) -> str:
     """Run Levene's test for equality of variances (via ONEWAY)."""
     syntax = (
