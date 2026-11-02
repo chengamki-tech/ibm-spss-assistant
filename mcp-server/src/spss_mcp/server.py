@@ -38,7 +38,6 @@ from .utils import clean_output
 
 logger = logging.getLogger("spss-mcp")
 
-engine = SPSSEngine()
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Tool definitions
@@ -395,221 +394,100 @@ TOOLS: list[Tool] = [
 #  Tool dispatch
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _ok(text: str) -> list[TextContent]:
+def _ok(text):
     return [TextContent(type="text", text=clean_output(text))]
 
 
-def _err(msg: str) -> list[TextContent]:
-    return [TextContent(type="text", text=f"Error: {msg}")]
+# Use the public schemas for MCP and direct Python dispatch validation.
+for tool in TOOLS:
+    tool.inputSchema["additionalProperties"] = False
+
+# Keep help aligned with runtime behavior.
+for tool in TOOLS:
+    if tool.name == "spss_connect":
+        tool.description = "Connect to licensed local SPSS Python Integration. Set SPSS_PYTHON or SPSS_HOME; no cloud service is used."
+    if tool.name == "spss_open_data":
+        tool.description = "Open an absolute .sav, .xls or .xlsx path. Delimited files require explicit GET DATA syntax with a variable schema."
+    if tool.name == "spss_regression":
+        tool.description = "Run linear regression with model summary, ANOVA and coefficients. Use raw syntax for additional diagnostics."
+    if tool.name == "spss_logistic":
+        tool.description = "Run binary or ordinal logistic regression. Specify dv_type explicitly."
+        tool.inputSchema["properties"]["dv_type"] = {"type": "string", "enum": ["binary", "ordinal"]}
+        tool.inputSchema["required"].append("dv_type")
 
 
-async def dispatch_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    """Route a tool call to the appropriate handler."""
+HANDLERS = {
+    "spss_open_data": open_data, "spss_get_variables": get_variable_info,
+    "spss_get_summary": get_data_summary, "spss_save_data": save_data,
+    "spss_descriptives": descriptives, "spss_frequency": frequency,
+    "spss_ttest": ttest, "spss_ttest_paired": ttest_paired,
+    "spss_anova": anova, "spss_correlation": correlation,
+    "spss_regression": regression, "spss_crosstab": crosstab,
+    "spss_reliability": reliability, "spss_factor": factor,
+    "spss_logistic": logistic, "spss_explore": explore,
+    "spss_normality": normality_test, "spss_levenes": levenes_test,
+    "spss_means_compare": means_compare, "spss_execute_syntax": execute_syntax,
+    "spss_run_analysis": run_analysis, "spss_export_output": export_output,
+    "spss_export_chart": export_chart, "spss_clear_output": clear_output,
+}
 
-    # ── System ──
+
+def _dispatch(name, arguments, local_engine):
+    from jsonschema import Draft202012Validator
+    tool = next((t for t in TOOLS if t.name == name), None)
+    if tool is None:
+        raise SPSSError(f"Unknown tool: {name}")
+    errors = list(Draft202012Validator(tool.inputSchema).iter_errors(arguments))
+    if errors:
+        raise SPSSError("Invalid arguments: " + errors[0].message)
     if name == "spss_connect":
-        spss_home = arguments.get("spss_home")
-        result = engine.connect(spss_home)
-        return _ok(json.dumps(result, indent=2, ensure_ascii=False))
-
+        return json.dumps(local_engine.connect(**arguments), ensure_ascii=False)
     if name == "spss_status":
-        result = engine.status()
-        return _ok(json.dumps(result, indent=2, ensure_ascii=False))
-
+        return json.dumps(local_engine.status(), ensure_ascii=False)
     if name == "spss_disconnect":
-        result = engine.disconnect()
-        return _ok(json.dumps(result, indent=2, ensure_ascii=False))
+        return json.dumps(local_engine.disconnect(), ensure_ascii=False)
+    if not local_engine.is_connected():
+        raise SPSSError("Not connected to IBM SPSS. Call spss_connect. If SPSS is not installed, install licensed SPSS with Python Integration and set SPSS_PYTHON.")
+    return HANDLERS[name](local_engine, **arguments)
 
-    # All remaining tools require connection
-    if not engine.is_connected():
-        return _err(
-            "Not connected to IBM SPSS. Call spss_connect first.\n"
-            "If SPSS is not installed, you need IBM SPSS Statistics on your computer."
-        )
 
-    # ── Data ──
-    if name == "spss_open_data":
+async def dispatch_tool(name, arguments, local_engine):
+    """Serialize stateful calls in a thread so MCP's event loop stays responsive."""
+    import anyio
+    return _ok(await anyio.to_thread.run_sync(_dispatch, name, arguments, local_engine))
+
+
+def create_server(local_engine=None):
+    from contextlib import asynccontextmanager
+    from mcp.types import CallToolResult
+    import anyio
+    local_engine = local_engine or SPSSEngine()
+    lock = anyio.Lock()
+
+    @asynccontextmanager
+    async def lifespan(server):
         try:
-            result = open_data(engine, arguments["file_path"], arguments.get("encoding", "auto"))
-            return _ok(result)
-        except SPSSError as e:
-            return _err(str(e))
+            yield {}
+        finally:
+            await anyio.to_thread.run_sync(local_engine.disconnect)
 
-    if name == "spss_get_variables":
-        try:
-            result = get_variable_info(engine)
-            return _ok(result)
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_get_summary":
-        try:
-            result = get_data_summary(engine, arguments.get("variables"))
-            return _ok(result)
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_save_data":
-        try:
-            result = save_data(engine, arguments["file_path"])
-            return _ok(result)
-        except SPSSError as e:
-            return _err(str(e))
-
-    # ── Quick analysis ──
-    if name == "spss_descriptives":
-        try:
-            return _ok(descriptives(engine, arguments.get("variables", "ALL")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_frequency":
-        try:
-            return _ok(frequency(engine, arguments["variables"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_explore":
-        try:
-            return _ok(explore(engine, arguments["variables"], arguments.get("group")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_normality":
-        try:
-            return _ok(normality_test(engine, arguments["variables"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_levenes":
-        try:
-            return _ok(levenes_test(engine, arguments["dv"], arguments["group"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_ttest":
-        try:
-            return _ok(ttest(engine, arguments["dv"], arguments["group"], arguments.get("groups", "1 2")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_ttest_paired":
-        try:
-            return _ok(ttest_paired(engine, arguments["var1"], arguments["var2"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_anova":
-        try:
-            return _ok(anova(engine, arguments["dv"], arguments["factor"], arguments.get("posthoc", "TUKEY BONFERRONI")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_correlation":
-        try:
-            return _ok(correlation(engine, arguments["variables"], arguments.get("method", "PEARSON")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_regression":
-        try:
-            return _ok(regression(engine, arguments["dv"], arguments["ivs"], arguments.get("method", "ENTER")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_crosstab":
-        try:
-            return _ok(crosstab(engine, arguments["row_var"], arguments["col_var"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_reliability":
-        try:
-            return _ok(reliability(engine, arguments["items"], arguments.get("scale_name", "Scale")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_factor":
-        try:
-            return _ok(factor(engine, arguments["variables"], arguments.get("rotation", "VARIMAX")))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_logistic":
-        try:
-            return _ok(logistic(
-                engine, arguments["dv"], arguments["ivs"],
-                arguments.get("dv_type", "auto"),
-                arguments.get("factors", ""),
-                arguments.get("covariates", ""),
-            ))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_means_compare":
-        try:
-            return _ok(means_compare(engine, arguments["dv"], arguments["group"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    # ── General ──
-    if name == "spss_execute_syntax":
-        try:
-            return _ok(execute_syntax(engine, arguments["syntax"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_run_analysis":
-        try:
-            result = run_analysis(engine, arguments["analysis_type"], arguments.get("params", {}))
-            return _ok(result)
-        except SPSSError as e:
-            return _err(str(e))
-
-    # ── Export ──
-    if name == "spss_export_output":
-        try:
-            return _ok(export_output(engine, arguments["format"], arguments["file_path"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_export_chart":
-        try:
-            return _ok(export_chart(engine, arguments["format"], arguments["file_path"]))
-        except SPSSError as e:
-            return _err(str(e))
-
-    if name == "spss_clear_output":
-        try:
-            return _ok(clear_output(engine))
-        except SPSSError as e:
-            return _err(str(e))
-
-    return _err(f"Unknown tool: {name}")
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-#  MCP Server entry point
-# ═══════════════════════════════════════════════════════════════════════════
-
-def create_server() -> Server:
-    """Create and configure the MCP Server."""
-    server = Server("spss-mcp")
+    server = Server("spss-mcp", lifespan=lifespan)
 
     @server.list_tools()
-    async def list_tools() -> list[Tool]:
+    async def list_tools():
         return TOOLS
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-        logger.info(f"Tool call: {name}({list(arguments.keys())})")
-        try:
-            result = await dispatch_tool(name, arguments)
-            return result
-        except Exception as e:
-            logger.exception(f"Error in tool {name}")
-            return _err(f"Unexpected error: {e}")
-
+    async def call_tool(name, arguments):
+        async with lock:
+            try:
+                content = await dispatch_tool(name, arguments, local_engine)
+                return CallToolResult(content=content, isError=False)
+            except (SPSSError, ValueError, TypeError, OSError) as exc:
+                return CallToolResult(content=_ok(str(exc)), isError=True)
+            except Exception:
+                logger.exception("Unexpected tool failure: %s", name)
+                return CallToolResult(content=_ok("Unexpected local SPSS failure; see server stderr for details."), isError=True)
     return server
 
 

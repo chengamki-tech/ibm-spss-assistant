@@ -1,21 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "spss-mcp-server"
-version = "1.0.0"
-description = "MCP Server for IBM SPSS Statistics — enables AI agents to directly execute analyses in your local SPSS"
+version = "1.1.0"
+description = "Local stdio MCP tools for IBM SPSS Statistics"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
-authors = [{ name = "Amki1209" }]
-dependencies = [
-    "mcp>=1.0.0",
-]
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{name = "chengamki-tech contributors"}]
+dependencies = ["mcp>=1.12,<2", "jsonschema>=4.20,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
 
 [project.scripts]
 spss-mcp = "spss_mcp.server:main"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.urls]
+Repository = "https://github.com/chengamki-tech/ibm-spss-assistant"
+Issues = "https://github.com/chengamki-tech/ibm-spss-assistant/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/spss_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

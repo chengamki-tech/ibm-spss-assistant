@@ -1,3 +1,5 @@
-"""Entry point for `python -m spss_mcp`."""
+"""Entry point for python -m spss_mcp."""
 from .server import main
-main()
+
+if __name__ == "__main__":
+    main()

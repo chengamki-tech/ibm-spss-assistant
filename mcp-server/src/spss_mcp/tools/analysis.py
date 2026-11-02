@@ -1,71 +1,78 @@
-"""General-purpose analysis execution tool."""
+"""Validated structured analyses and explicitly trusted raw syntax."""
+from ..spss_engine import SPSSError
+from ..validation import parameters
+import os
 
-from __future__ import annotations
+REQUIRED = {
+    "descriptives": set(), "frequency": set(), "ttest": {"dv", "group"},
+    "anova": {"dv", "factor"}, "correlation": {"variables"},
+    "regression": {"dv", "ivs"}, "crosstab": {"row_var", "col_var"},
+    "reliability": {"items"}, "factor": {"variables"}, "logistic": {"dv", "ivs", "dv_type"},
+    "nonparametric": {"test"}, "glm": {"dv", "factors"},
+    "mixed": {"dv", "fixed", "random_subject"}, "survival": {"time", "status"},
+    "roc": {"test_var", "state_var"}, "cluster": {"variables"},
+    "discriminant": {"group", "variables"}, "curve": {"y", "x"},
+    "tree": {"target", "predictors"},
+}
 
-
-def execute_syntax(engine, syntax: str) -> str:
-    """Execute arbitrary SPSS syntax and return text output.
-
-    Parameters
-    ----------
-    syntax : str  Full SPSS syntax text. Each command must end with a period (.).
-
-    Returns
-    -------
-    str  SPSS output as formatted text.
-    """
-    if not syntax.strip():
-        return "Error: No syntax provided."
-
-    try:
-        return engine.execute(syntax)
-    except Exception as exc:
-        msg = str(exc)
-        # Provide context-specific hints for common failures
-        hints = []
-        if "GET DATA" in syntax.upper() and ("XLSX" in syntax.upper() or "XLS" in syntax.upper()):
-            hints.append("Tip: Excel import may fail via CLI. Convert to .csv or .sav first.")
-        if "/STATISTICS" in syntax.upper() and "REGRESSION" in syntax.upper():
-            hints.append(
-                "Tip: REGRESSION /STATISTICS subcommand may fail via OMS capture.\n"
-                "Try: spss_regression(dv, ivs) tool instead, which omits problematic subcommands."
-            )
-        if "GET DATA" in syntax.upper() and "TXT" in syntax.upper():
-            hints.append("Tip: CSV/TXT import may fail via CLI. Convert to .sav format first.")
-
-        result = f"Error: {msg}"
-        if hints:
-            result += "\n\n" + "\n".join(hints)
-        return result
+def execute_syntax(engine, syntax):
+    if os.environ.get("SPSS_ALLOW_SYNTAX", "1") != "1":
+        raise SPSSError("Raw syntax is disabled by SPSS_ALLOW_SYNTAX.")
+    if not isinstance(syntax, str) or not syntax.strip() or len(syntax) > 1_000_000 or "\x00" in syntax:
+        raise SPSSError("Provide nonempty syntax up to 1,000,000 characters without NUL bytes.")
+    return engine.execute(syntax)
 
 
-def run_analysis(
-    engine,
-    analysis_type: str,
-    params: dict,
-) -> str:
-    """Run a structured analysis by type and parameters.
-
-    Parameters
-    ----------
-    analysis_type : str
-        One of: descriptives, frequency, ttest, anova, correlation, regression,
-        crosstab, reliability, factor, logistic, nonparametric, glm, mixed,
-        survival, roc, cluster, discriminant, curve, neural, tree
-    params : dict
-        Analysis-specific parameters.
-
-    Returns
-    -------
-    str  SPSS output as formatted text.
-    """
-    syntax = _build_syntax(analysis_type, params)
+def run_analysis(engine, analysis_type, params):
+    if not isinstance(analysis_type, str) or not isinstance(params, dict):
+        raise SPSSError("Expected analysis_type string and params object.")
+    at = analysis_type.lower().strip()
+    if at not in REQUIRED:
+        raise SPSSError("Unknown analysis type: " + at)
+    required = REQUIRED[at].copy()
+    if at == "ttest" and params.get("paired") is True:
+        required = {"dv"}
+    if at == "nonparametric":
+        required |= {"variables"} if params.get("test") in ("wilcoxon", "friedman") else {"dv", "group"}
+    if at == "survival":
+        required |= {"covariates"} if not params.get("group") else {"group"}
+    if required - params.keys():
+        raise SPSSError("Missing parameters: " + ", ".join(sorted(required - params.keys())))
+    if at not in ANALYSIS_PARAMS or params.keys() - ANALYSIS_PARAMS[at]:
+        raise SPSSError("Unknown parameter for " + at)
+    validation_params = dict(params)
+    paired_dv = validation_params.pop("dv", None) if at == "ttest" and params.get("paired") else None
+    values = parameters(at, validation_params)
+    if paired_dv is not None:
+        words = parameters(at, {"variables": paired_dv})["variables"].split()
+        if len(words) != 2:
+            raise SPSSError("Paired t-test requires exactly two dv variables.")
+        values["dv"] = ",".join(words)
+    syntax = _build_syntax(at, values)
     if syntax.startswith("Error"):
-        return syntax
-    try:
-        return engine.execute(syntax)
-    except Exception as exc:
-        return f"Error running {analysis_type}: {exc}"
+        raise SPSSError(syntax)
+    return engine.execute(syntax)
+
+
+ANALYSIS_PARAMS = {'anova': {'posthoc', 'factor', 'dv'},
+ 'cluster': {'n_clusters', 'variables', 'method'},
+ 'correlation': {'variables', 'method'},
+ 'crosstab': {'statistics', 'col_var', 'row_var'},
+ 'curve': {'x', 'models', 'y'},
+ 'descriptives': {'variables'},
+ 'discriminant': {'group', 'variables', 'groups'},
+ 'factor': {'extraction', 'rotation', 'variables'},
+ 'frequency': {'variables', 'chart'},
+ 'glm': {'factors', 'dv'},
+ 'logistic': {'factors', 'ivs', 'dv_type', 'covariates', 'dv'},
+ 'mixed': {'random_subject', 'fixed', 'dv'},
+ 'nonparametric': {'group', 'variables', 'test', 'dv'},
+ 'regression': {'method', 'ivs', 'dv'},
+ 'reliability': {'items', 'scale_name'},
+ 'roc': {'state_value', 'test_var', 'state_var'},
+ 'survival': {'status_value', 'status', 'covariates', 'group', 'time'},
+ 'tree': {'predictors', 'target', 'method'},
+ 'ttest': {'paired', 'group', 'groups', 'dv'}}
 
 
 def _build_syntax(analysis_type: str, params: dict) -> str:
@@ -142,7 +149,7 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
             f"REGRESSION\n"
             f"  /MISSING LISTWISE\n"
             f"  /DEPENDENT {dv}\n"
-            f"  /METHOD={method}({ivs})."
+            f"  /METHOD={method} {ivs}."
         )
 
     if at == "crosstab":
@@ -348,10 +355,11 @@ def _build_syntax(analysis_type: str, params: dict) -> str:
 
     if at == "discriminant":
         group = params.get("group", "")
+        groups = params.get("groups", "1 2")
         variables = params.get("variables", "")
         return (
             f"DISCRIMINANT\n"
-            f"  /GROUPS={group}\n"
+            f"  /GROUPS={group}({groups})\n"
             f"  /VARIABLES={variables}\n"
             f"  /ANALYSIS ALL\n"
             f"  /METHOD=WILKS\n"

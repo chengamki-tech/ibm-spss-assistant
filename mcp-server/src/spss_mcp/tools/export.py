@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import os
+from ..validation import data_path
+from ..spss_engine import SPSSError
 
 
 def export_output(engine, format: str, file_path: str) -> str:
@@ -13,7 +14,7 @@ def export_output(engine, format: str, file_path: str) -> str:
     format    : str  'html', 'docx', 'pdf', 'png', 'emf'
     file_path : str  Absolute destination path.
     """
-    file_path = os.path.abspath(file_path).replace("\\", "/")
+    file_path = data_path(file_path, output=True)
     fmt = format.lower().strip()
 
     if fmt == "html":
@@ -48,7 +49,7 @@ def export_output(engine, format: str, file_path: str) -> str:
             f"  /EMF IMAGFILE='{file_path}'."
         )
     else:
-        return f"Error: Unsupported format '{format}'. Use: html, docx, pdf, png, emf"
+        raise SPSSError("Unsupported format. Use html, docx, pdf, png, emf.")
 
     engine.execute(syntax, capture=False)
     return f"Output exported to: {file_path} ({fmt})"
@@ -56,7 +57,7 @@ def export_output(engine, format: str, file_path: str) -> str:
 
 def export_chart(engine, format: str, file_path: str) -> str:
     """Export only charts from the current output."""
-    file_path = os.path.abspath(file_path).replace("\\", "/")
+    file_path = data_path(file_path, output=True)
     fmt = format.lower().strip()
 
     if fmt == "png":
@@ -72,7 +73,7 @@ def export_chart(engine, format: str, file_path: str) -> str:
             f"  /EMF IMAGFILE='{file_path}'."
         )
     else:
-        return f"Error: Chart export supports 'png' and 'emf' only."
+        raise SPSSError("Chart export supports png and emf only.")
 
     engine.execute(syntax, capture=False)
     return f"Chart exported to: {file_path}"
